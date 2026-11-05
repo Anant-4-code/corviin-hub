@@ -11,6 +11,12 @@ import {
   OfflineState,
   Breadcrumbs,
   FormSection,
+  CommentComposer,
+  AttachmentList,
+  DateTimeField,
+  MemberPicker,
+  RelatedRecordPicker,
+  ResponsiveDetailLayout,
 } from '@/components/ui';
 import { DesignSystemPreviewPage } from '@/features/design-system/DesignSystemPreviewPage';
 import { ThemeProvider } from '@/app/providers/ThemeProvider';
@@ -124,6 +130,122 @@ describe('Design System Primitives', () => {
     expect(screen.getByText('Account Details')).toBeInTheDocument();
     expect(screen.getByText('Update your personal details')).toBeInTheDocument();
     expect(screen.getByText('Form field content')).toBeInTheDocument();
+  });
+
+  it('renders CommentComposer and submits on button click', () => {
+    const handleSubmit = vi.fn();
+    render(<CommentComposer onSubmit={handleSubmit} placeholder="Write a comment..." />);
+
+    const textarea = screen.getByPlaceholderText('Write a comment...');
+    fireEvent.change(textarea, { target: { value: 'This is a test comment' } });
+
+    const submitBtn = screen.getByRole('button', { name: /post comment/i });
+    expect(submitBtn).toBeEnabled();
+    fireEvent.click(submitBtn);
+
+    expect(handleSubmit).toHaveBeenCalledWith('This is a test comment');
+  });
+
+  it('renders AttachmentList with files and handles download and remove', () => {
+    const handleDownload = vi.fn();
+    const handleRemove = vi.fn();
+
+    const sampleAttachments = [
+      {
+        id: 'file-1',
+        name: 'sample_proposal.pdf',
+        size: 1024 * 500,
+        type: 'document' as const,
+        uploadedAt: 'Today',
+      },
+    ];
+
+    render(
+      <AttachmentList
+        attachments={sampleAttachments}
+        onDownload={handleDownload}
+        onRemove={handleRemove}
+      />,
+    );
+
+    expect(screen.getByText('sample_proposal.pdf')).toBeInTheDocument();
+    expect(screen.getByText(/500.0 KB/)).toBeInTheDocument();
+
+    const downloadBtn = screen.getByTitle('Download attachment');
+    fireEvent.click(downloadBtn);
+    expect(handleDownload).toHaveBeenCalledWith(sampleAttachments[0]);
+
+    const removeBtn = screen.getByTitle('Remove attachment link');
+    fireEvent.click(removeBtn);
+    expect(handleRemove).toHaveBeenCalledWith(sampleAttachments[0]);
+  });
+
+  it('renders DateTimeField with label and timezone', () => {
+    const handleDate = vi.fn();
+    render(
+      <DateTimeField
+        label="Meeting Schedule"
+        dateValue="2026-11-10"
+        onDateChange={handleDate}
+        timezone="IST (UTC+05:30)"
+      />,
+    );
+
+    expect(screen.getByText('Meeting Schedule')).toBeInTheDocument();
+    expect(screen.getByText('IST (UTC+05:30)')).toBeInTheDocument();
+  });
+
+  it('renders MemberPicker and selects a team member', () => {
+    const handleSelect = vi.fn();
+    const members = [
+      { id: 'm-1', name: 'Anant', role: 'Tech Lead' },
+      { id: 'm-2', name: 'Rohit', role: 'Real Estate Lead' },
+    ];
+
+    render(
+      <MemberPicker
+        label="Assigned Lead"
+        selectedMemberId="m-1"
+        onSelect={handleSelect}
+        members={members}
+      />,
+    );
+
+    expect(screen.getByText('Assigned Lead')).toBeInTheDocument();
+    expect(screen.getByText('Anant')).toBeInTheDocument();
+  });
+
+  it('renders RelatedRecordPicker with linked record', () => {
+    const handleSelect = vi.fn();
+    const records = [
+      { id: 'r-1', title: 'Skyview Villa Campaign', type: 'campaign' as const },
+    ];
+
+    render(
+      <RelatedRecordPicker
+        label="Campaign Link"
+        selectedRecordId="r-1"
+        onSelect={handleSelect}
+        records={records}
+      />,
+    );
+
+    expect(screen.getByText('Campaign Link')).toBeInTheDocument();
+    expect(screen.getByText('Skyview Villa Campaign')).toBeInTheDocument();
+  });
+
+  it('renders ResponsiveDetailLayout with header, main and side content', () => {
+    render(
+      <ResponsiveDetailLayout
+        header={<div>Header Area</div>}
+        mainContent={<div>Main Operational Area</div>}
+        sideContent={<div>Side Metadata Area</div>}
+      />,
+    );
+
+    expect(screen.getByText('Header Area')).toBeInTheDocument();
+    expect(screen.getByText('Main Operational Area')).toBeInTheDocument();
+    expect(screen.getByText('Side Metadata Area')).toBeInTheDocument();
   });
 
   it('renders the complete DesignSystemPreviewPage without crashing', () => {

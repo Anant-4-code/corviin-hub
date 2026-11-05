@@ -12,6 +12,9 @@ import {
   Plus,
   ArrowRight,
   Sparkles,
+  Paperclip,
+  Calendar,
+  Layers,
 } from 'lucide-react';
 import {
   Button,
@@ -50,7 +53,15 @@ import {
   PermissionDeniedState,
   OfflineState,
   useToast,
+  CommentComposer,
+  AttachmentList,
+  DateTimeField,
+  MemberPicker,
+  RelatedRecordPicker,
+  ResponsiveDetailLayout,
   type ActiveFilter,
+  type AttachmentItem,
+  type RelatedRecordItem,
 } from '@/components/ui';
 import { useTheme } from '@/app/providers/ThemeProvider';
 
@@ -103,6 +114,48 @@ const DEMO_RECORDS: DemoRecord[] = [
   },
 ];
 
+const DEMO_MEMBERS = [
+  { id: 'usr-1', name: 'Anant', role: 'Technical Lead & Architecture', email: 'anant@corviin.com' },
+  { id: 'usr-2', name: 'Rohit', role: 'Real Estate Strategy & Operations', email: 'rohit@corviin.com' },
+  { id: 'usr-3', name: 'Utkarsh', role: 'Creative Director & Campaigns', email: 'utkarsh@corviin.com' },
+  { id: 'usr-4', name: 'Priya Sharma', role: 'Client Relations Associate', email: 'priya@corviin.com' },
+];
+
+const DEMO_RELATED_RECORDS: RelatedRecordItem[] = [
+  { id: 'tsk-101', title: 'Prepare frontend skeleton documentation', type: 'task', subtitle: 'Work Module' },
+  { id: 'cmp-201', title: 'Skyview Luxury Villa Campaign', type: 'campaign', subtitle: '5-Stage Production' },
+  { id: 'mtg-301', title: 'Commercial Developer Discovery Call', type: 'meeting', subtitle: 'RE Partners' },
+  { id: 'crm-401', title: 'Apex Real Estate Holdings Enquiry', type: 'crm', subtitle: 'Lead ID: CR-883' },
+  { id: 'gol-501', title: 'Q4 Real Estate Pipeline Target', type: 'goal', subtitle: 'Target: ₹5 Cr' },
+];
+
+const INITIAL_ATTACHMENTS: AttachmentItem[] = [
+  {
+    id: 'att-1',
+    name: 'villa_site_elevation_plan.pdf',
+    size: 4200000,
+    type: 'document',
+    uploadedAt: 'Today at 11:30 AM',
+    uploaderName: 'Rohit',
+  },
+  {
+    id: 'att-2',
+    name: 'drone_exterior_preview_4k.mp4',
+    size: 28500000,
+    type: 'video',
+    uploadedAt: 'Yesterday at 3:15 PM',
+    uploaderName: 'Utkarsh',
+  },
+  {
+    id: 'att-3',
+    name: 'property_master_render.jpg',
+    size: 1800000,
+    type: 'image',
+    uploadedAt: 'Nov 02, 2026',
+    uploaderName: 'Utkarsh',
+  },
+];
+
 export function DesignSystemPreviewPage() {
   const { theme, setTheme } = useTheme();
   const { addToast } = useToast();
@@ -117,6 +170,13 @@ export function DesignSystemPreviewPage() {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [btnLoading, setBtnLoading] = useState(false);
+
+  // Form picker states
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>('usr-1');
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>('cmp-201');
+  const [demoDate, setDemoDate] = useState('2026-11-15');
+  const [demoTime, setDemoTime] = useState('14:30');
+  const [attachments, setAttachments] = useState<AttachmentItem[]>(INITIAL_ATTACHMENTS);
 
   // Active filters demo
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([
@@ -290,11 +350,12 @@ export function DesignSystemPreviewPage() {
         tabs={[
           { id: 'tokens', label: 'Color Tokens & Typography' },
           { id: 'buttons', label: 'Buttons & Actions' },
-          { id: 'forms', label: 'Forms & Inputs' },
+          { id: 'forms', label: 'Forms & Pickers' },
           { id: 'badges', label: 'Badges & Indicators' },
           { id: 'data', label: 'Data Tables & Records' },
-          { id: 'filters', label: 'Filters & Uploads' },
+          { id: 'filters', label: 'Filters & Attachments' },
           { id: 'overlays', label: 'Dialogs & Feedback' },
+          { id: 'layout', label: 'Responsive Detail Layout' },
           { id: 'states', label: 'System States' },
         ]}
         activeTab={activeTab}
@@ -485,37 +546,50 @@ export function DesignSystemPreviewPage() {
         </div>
       )}
 
-      {/* SECTION 3: FORMS & INPUTS */}
+      {/* SECTION 3: FORMS & PICKERS */}
       {activeTab === 'forms' && (
         <div className="space-y-6">
           <FormSection
-            title="Standard Form Section"
+            title="Operational Record Form"
             description="All form controls have visible labels, clear error states, and optional helper text."
             columns={2}
           >
             <Input
-              label="Task Title"
+              label="Task / Record Title"
               placeholder="e.g. Schedule project kickoff meeting"
               required
               helper="Be descriptive so assignees understand the deliverable immediately."
             />
 
-            <Select
-              label="Assigned Profile"
+            {/* MemberPicker Primitive */}
+            <MemberPicker
+              label="Assigned Team Member"
+              selectedMemberId={selectedMemberId || undefined}
+              onSelect={setSelectedMemberId}
+              members={DEMO_MEMBERS}
               required
-              options={[
-                { value: 'anant', label: 'Anant (Tech Lead)' },
-                { value: 'rohit', label: 'Rohit (Real Estate Lead)' },
-                { value: 'utkarsh', label: 'Utkarsh (Creative Lead)' },
-              ]}
-              placeholder="Select an acting profile"
+              helper="Dynamic member selector with initials avatar and role."
             />
 
-            <Input
-              label="Deadline Date"
-              type="date"
+            {/* RelatedRecordPicker Primitive */}
+            <RelatedRecordPicker
+              label="Link Related Record"
+              selectedRecordId={selectedRecordId || undefined}
+              onSelect={(rec) => setSelectedRecordId(rec ? rec.id : null)}
+              records={DEMO_RELATED_RECORDS}
+              helper="Link to a task, campaign, meeting or CRM record across the active workspace."
+            />
+
+            {/* DateTimeField Primitive */}
+            <DateTimeField
+              label="Target Delivery Date & Time"
+              dateValue={demoDate}
+              onDateChange={setDemoDate}
+              timeValue={demoTime}
+              onTimeChange={setDemoTime}
+              includeTime
               required
-              helper="Planned delivery date for this task."
+              helper="Preserves planned schedule with explicit timezone indicator."
             />
 
             <Input
@@ -525,12 +599,23 @@ export function DesignSystemPreviewPage() {
               required
             />
 
+            <Select
+              label="Priority Level"
+              options={[
+                { value: 'urgent', label: 'Urgent — immediate intervention' },
+                { value: 'high', label: 'High — due within 48 hours' },
+                { value: 'medium', label: 'Medium — standard timeline' },
+                { value: 'low', label: 'Low — backlog / opportunistic' },
+              ]}
+              defaultValue="high"
+            />
+
             <div className="md:col-span-2">
               <Textarea
-                label="Task Description & Notes"
+                label="Task Description & Context"
                 rows={3}
                 placeholder="Include agenda, links to reference assets, or success criteria..."
-                helper="Provide enough context so the task is self-explanatory."
+                helper="Provide enough context so the record is self-explanatory without training."
               />
             </div>
           </FormSection>
@@ -705,7 +790,7 @@ export function DesignSystemPreviewPage() {
         </div>
       )}
 
-      {/* SECTION 6: FILTERS & FILE UPLOADS */}
+      {/* SECTION 6: FILTERS & ATTACHMENTS */}
       {activeTab === 'filters' && (
         <div className="space-y-6">
           <Card>
@@ -772,6 +857,32 @@ export function DesignSystemPreviewPage() {
             </CardBody>
           </Card>
 
+          {/* AttachmentList Primitive */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <Paperclip size={16} className="text-accent" />
+                  <h2 className="text-sm font-semibold text-ch-text-primary">
+                    Attachment List Primitive
+                  </h2>
+                </div>
+                <span className="text-xs text-ch-text-secondary">{attachments.length} files attached</span>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <AttachmentList
+                attachments={attachments}
+                onDownload={(item) => addToast({ type: 'info', message: `Downloading ${item.name}` })}
+                onRemove={(item) => {
+                  setAttachments((prev) => prev.filter((a) => a.id !== item.id));
+                  addToast({ type: 'warning', message: `Removed attachment link: ${item.name}` });
+                }}
+              />
+            </CardBody>
+          </Card>
+
+          {/* FileUploader Primitive */}
           <Card>
             <CardHeader>
               <h2 className="text-sm font-semibold text-ch-text-primary">
@@ -883,6 +994,27 @@ export function DesignSystemPreviewPage() {
             </CardBody>
           </Card>
 
+          {/* CommentComposer Primitive */}
+          <Card>
+            <CardHeader>
+              <h2 className="text-sm font-semibold text-ch-text-primary">
+                Comment Composer Primitive
+              </h2>
+            </CardHeader>
+            <CardBody>
+              <CommentComposer
+                authorName="Anant"
+                onSubmit={(text) =>
+                  addToast({
+                    type: 'success',
+                    message: 'Comment posted',
+                    description: `"${text}"`,
+                  })
+                }
+              />
+            </CardBody>
+          </Card>
+
           <Card>
             <CardHeader>
               <h2 className="text-sm font-semibold text-ch-text-primary">Toast Feedback Notifications</h2>
@@ -943,7 +1075,100 @@ export function DesignSystemPreviewPage() {
         </div>
       )}
 
-      {/* SECTION 8: SYSTEM STATES */}
+      {/* SECTION 8: RESPONSIVE DETAIL LAYOUT */}
+      {activeTab === 'layout' && (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div>
+                <h2 className="text-sm font-semibold text-ch-text-primary">
+                  Responsive Detail Layout Architecture
+                </h2>
+                <p className="text-xs text-ch-text-secondary mt-0.5">
+                  Standard 2-column pattern for complex operational records: Left 67% (content, tabs, activity) and Right 33% (metadata, assignees, dates, actions).
+                </p>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <ResponsiveDetailLayout
+                header={
+                  <div className="p-4 bg-surface border border-ch-border rounded-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-xs text-accent font-semibold uppercase tracking-wider">
+                        Campaign #CMP-2026-08
+                      </span>
+                      <h3 className="text-lg font-bold text-ch-text-primary">
+                        Skyview Luxury Villa Promotion
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge type="warning" label="Scripting & Planning" />
+                      <PriorityIndicator priority="HIGH" />
+                    </div>
+                  </div>
+                }
+                mainContent={
+                  <div className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <h4 className="text-xs font-semibold text-ch-text-primary">
+                          Main Content Area (Tabs & Workspace)
+                        </h4>
+                      </CardHeader>
+                      <CardBody className="space-y-3 text-sm text-ch-text-secondary">
+                        <p>
+                          Contains the campaign stage workspace, linked action items, and activity history.
+                          On desktop, this area occupies 8 of 12 columns for comfortable reading density.
+                        </p>
+                        <CommentComposer
+                          authorName="Utkarsh"
+                          placeholder="Leave an internal production note…"
+                          onSubmit={(text) => addToast({ type: 'info', message: text })}
+                        />
+                      </CardBody>
+                    </Card>
+                  </div>
+                }
+                sideContent={
+                  <div className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <h4 className="text-xs font-semibold text-ch-text-primary">
+                          Record Metadata & Actions
+                        </h4>
+                      </CardHeader>
+                      <CardBody className="space-y-3 text-xs">
+                        <div>
+                          <span className="text-ch-text-muted">Lead Owner</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Avatar name="Rohit" size="sm" />
+                            <span className="font-semibold text-ch-text-primary">Rohit (Real Estate)</span>
+                          </div>
+                        </div>
+                        <div className="border-t border-ch-border pt-2">
+                          <span className="text-ch-text-muted">Target Launch</span>
+                          <p className="font-semibold text-ch-text-primary mt-0.5">November 20, 2026</p>
+                        </div>
+                        <div className="border-t border-ch-border pt-2">
+                          <span className="text-ch-text-muted">Linked CRM Property</span>
+                          <p className="font-semibold text-accent mt-0.5">Skyview Villas Phase 2</p>
+                        </div>
+                      </CardBody>
+                      <CardFooter>
+                        <Button variant="primary" size="sm" className="w-full">
+                          Advance Stage
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </div>
+                }
+              />
+            </CardBody>
+          </Card>
+        </div>
+      )}
+
+      {/* SECTION 9: SYSTEM STATES */}
       {activeTab === 'states' && (
         <div className="space-y-6">
           <Card>
