@@ -1,29 +1,8 @@
 import { type ReactNode } from 'react';
-import { ChevronRight, Home } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { cn } from '@/lib/cn';
+import { Breadcrumbs, type BreadcrumbItem } from './Breadcrumbs';
 
-interface BreadcrumbItem { label: string; path?: string; }
-
-export function Breadcrumbs({ items, className }: { items: BreadcrumbItem[]; className?: string }) {
-  return (
-    <nav aria-label="Breadcrumb" className={cn('flex items-center gap-1 text-xs text-ch-text-muted', className)}>
-      <Link to="/app/dashboard" className="hover:text-ch-text-primary flex items-center gap-1">
-        <Home size={12} />
-      </Link>
-      {items.map((item, i) => (
-        <span key={i} className="flex items-center gap-1">
-          <ChevronRight size={12} />
-          {item.path && i < items.length - 1 ? (
-            <Link to={item.path} className="hover:text-ch-text-primary">{item.label}</Link>
-          ) : (
-            <span className={i === items.length - 1 ? 'text-ch-text-secondary font-medium' : ''}>{item.label}</span>
-          )}
-        </span>
-      ))}
-    </nav>
-  );
-}
+export type { BreadcrumbItem };
 
 interface PageHeaderProps {
   title: string;
@@ -51,4 +30,3 @@ export function PageHeader({ title, description, breadcrumbs, action, className 
     </div>
   );
 }
-

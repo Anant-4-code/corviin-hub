@@ -10,6 +10,7 @@ import {
   Video,
   Settings,
   Home,
+  Palette,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -75,7 +76,10 @@ export const desktopNavGroups: NavGroup[] = [
   },
   {
     label: 'Administration',
-    items: [{ label: 'Settings', path: '/app/settings', icon: Settings }],
+    items: [
+      { label: 'Settings', path: '/app/settings', icon: Settings },
+      { label: 'Design System', path: '/app/design-system', icon: Palette },
+    ],
   },
 ];
 
@@ -93,5 +97,5 @@ export const mobileMoreItems: NavItem[] = [
   { label: 'Assets & Storage', path: '/app/assets', icon: FolderOpen },
   { label: 'Team', path: '/app/team', icon: Users2 },
   { label: 'Settings', path: '/app/settings', icon: Settings },
+  { label: 'Design System', path: '/app/design-system', icon: Palette },
 ];
-

@@ -30,6 +30,11 @@ export default {
         danger: { DEFAULT: 'var(--color-danger)', subtle: 'var(--color-danger-subtle)' },
         info: { DEFAULT: 'var(--color-info)', subtle: 'var(--color-info-subtle)' },
       },
+      borderRadius: {
+        control: '6px',
+        card: '8px',
+        modal: '10px',
+      },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
@@ -43,4 +48,3 @@ export default {
   },
   plugins: [],
 };
-

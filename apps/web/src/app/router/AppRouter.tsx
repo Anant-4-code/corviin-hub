@@ -26,6 +26,7 @@ import { MeetingDetailPage } from '@/features/meetings/MeetingDetailPage';
 import { TeamPage } from '@/features/team/TeamPage';
 import { TeamMemberPage } from '@/features/team/TeamMemberPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { DesignSystemPreviewPage } from '@/features/design-system/DesignSystemPreviewPage';
 import { NotFoundPage } from '@/features/common/NotFoundPage';
 
 function RequireProfile({ children }: { children: React.ReactNode }) {
@@ -78,10 +79,10 @@ export function AppRouter() {
         <Route path="team" element={<TeamPage />} />
         <Route path="team/:memberId" element={<TeamMemberPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="design-system" element={<DesignSystemPreviewPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
-

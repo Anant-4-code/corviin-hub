@@ -15,35 +15,36 @@ export function Pagination({ page, pageSize, total, onPageChange, className }: P
   const end = Math.min(page * pageSize, total);
 
   return (
-    <div className={cn('flex items-center justify-between text-xs text-ch-text-secondary py-3', className)}>
+    <div className={cn('flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-ch-text-secondary py-3', className)}>
       <span>
         Showing <span className="font-medium text-ch-text-primary">{start}</span>–
         <span className="font-medium text-ch-text-primary">{end}</span> of{' '}
-        <span className="font-medium text-ch-text-primary">{total}</span>
+        <span className="font-medium text-ch-text-primary">{total}</span> records
       </span>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
         <button
+          type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="p-1 rounded border border-ch-border hover:bg-surface-muted disabled:opacity-40 disabled:cursor-not-allowed"
+          className="min-h-[36px] min-w-[36px] p-1.5 rounded-control border border-ch-border bg-surface hover:bg-surface-muted text-ch-text-primary flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-accent"
           aria-label="Previous page"
         >
-          <ChevronLeft size={14} />
+          <ChevronLeft size={16} />
         </button>
-        <span className="px-2 font-medium">
-          {page} / {totalPages}
+        <span className="px-3 py-1 font-medium text-ch-text-primary select-none">
+          Page {page} of {totalPages}
         </span>
         <button
+          type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="p-1 rounded border border-ch-border hover:bg-surface-muted disabled:opacity-40 disabled:cursor-not-allowed"
+          className="min-h-[36px] min-w-[36px] p-1.5 rounded-control border border-ch-border bg-surface hover:bg-surface-muted text-ch-text-primary flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-accent"
           aria-label="Next page"
         >
-          <ChevronRight size={14} />
+          <ChevronRight size={16} />
         </button>
       </div>
     </div>
   );
 }
-

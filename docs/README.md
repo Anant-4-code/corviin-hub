@@ -51,3 +51,4 @@ All 18 feature specifications are located in [`CORVIIN_HUB_Feature_Specification
 - `17_NOTIFICATIONS_ACTIVITY_AUDIT.md`: Notification center and append-only audit trail
 - `18_GLOBAL_SEARCH_AND_CREATE_FLOWS.md`: Global search and contextual create action
 - `README.md`: Feature specification index
+
