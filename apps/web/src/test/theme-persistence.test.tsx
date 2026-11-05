@@ -20,3 +20,4 @@ describe('Theme Preference Persistence', () => {
     expect(useAppStore.getState().theme).toBe('system');
   });
 });
+

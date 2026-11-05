@@ -91,3 +91,4 @@ The following endpoints are established with clean module boundaries and swagger
 - `GET /api/v1/team`
 - `GET /api/v1/notifications`
 - `GET /api/v1/settings`
+

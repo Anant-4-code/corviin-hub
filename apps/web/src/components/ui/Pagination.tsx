@@ -46,3 +46,4 @@ export function Pagination({ page, pageSize, total, onPageChange, className }: P
     </div>
   );
 }
+

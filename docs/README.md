@@ -1,41 +1,40 @@
-# CORVIIN HUB — Documentation Index
+# CORVIIN HUB — Master Documentation Index
 
-**Document ID:** CH-DOC-000  
-**Version:** 1.0  
-**Product:** CORVIIN HUB  
-
----
-
-## 1. Master Product Specifications
-
-- [`PRD.md`](./PRD.md): Product Requirements Document (vision, user personas, operational scope).
-- [`TRD.md`](./TRD.md): Technical Requirements Document (architecture baseline, multi-tenancy, database strategy).
-- [`UPDATED_FEATURE_SCOPE.md`](./UPDATED_FEATURE_SCOPE.md): Updated feature decisions (no-login profile switcher, 3 calendars, 5-stage campaigns).
-- [`WEB_MOBILE_ARCHITECTURE_AND_FLOW.md`](./WEB_MOBILE_ARCHITECTURE_AND_FLOW.md): Responsive design, user journeys, route map.
-- [`CORVIIN_HUB_UI_UX_SPECIFICATION.md`](./CORVIIN_HUB_UI_UX_SPECIFICATION.md): Comprehensive UI/UX specification, zero-animation rule, light/dark themes.
-- [`DETAILED_FEATURE_WORKING.md`](./DETAILED_FEATURE_WORKING.md): Baseline functional details and mechanics.
+**Product:** CORVIIN HUB — Internal Operations Platform for Corviin Group  
+**Directory:** `docs/`  
 
 ---
 
-## 2. Implementation & Project Operations
+## 1. Product & Architecture Specifications (Source of Truth)
 
-- [`implementation/CORVIIN_HUB_BUILD_PHASES.md`](./implementation/CORVIIN_HUB_BUILD_PHASES.md): Phased vibe-coding roadmap and prompts (Phases 0–10).
-- [`implementation/BUILD_STATUS.md`](./implementation/BUILD_STATUS.md): Master tracker with live implementation status for all phases and features.
-- [`DECISIONS_AND_OPEN_QUESTIONS.md`](./DECISIONS_AND_OPEN_QUESTIONS.md): Technical decisions and open questions log.
-- [`REPOSITORY_STRUCTURE.md`](./REPOSITORY_STRUCTURE.md): Detailed monorepo directory hierarchy.
-- [`ARCHITECTURE_OVERVIEW.md`](./ARCHITECTURE_OVERVIEW.md): Frontend, backend, and cross-cutting architectural principles.
-- [`API_OVERVIEW.md`](./API_OVERVIEW.md): NestJS endpoint catalog, context interceptors, and Swagger integration.
-- [`ENVIRONMENT_SETUP.md`](./ENVIRONMENT_SETUP.md): Step-by-step developer environment setup.
+- [`CORVIIN_HUB_PRD_v1.0.md`](./CORVIIN_HUB_PRD_v1.0.md): Product Requirements Document (vision, user personas, operational scope)
+- [`CORVIIN_HUB_TRD_v1.0.md`](./CORVIIN_HUB_TRD_v1.0.md): Technical Requirements Document (architecture baseline, multi-tenancy, database strategy)
+- [`CORVIIN_HUB_Updated_Feature_Scope_v1.1.md`](./CORVIIN_HUB_Updated_Feature_Scope_v1.1.md): Updated feature decisions (no-login profile switcher, 3 calendars, 5-stage campaigns)
+- [`CORVIIN_HUB_Web_Mobile_Architecture_and_Flow_v1.0.md`](./CORVIIN_HUB_Web_Mobile_Architecture_and_Flow_v1.0.md): Responsive design, user journeys, route map
+- [`CORVIIN_HUB_UI_UX_Specification_v1.0.md`](./CORVIIN_HUB_UI_UX_Specification_v1.0.md): Comprehensive UI/UX specification, zero-animation rule, light/dark themes
+- [`CORVIIN_HUB_Detailed_Feature_Working.md`](./CORVIIN_HUB_Detailed_Feature_Working.md): Baseline functional details and mechanics
+- [`CORVIIN_HUB_BUILD_PHASES_V1.0.md`](./CORVIIN_HUB_BUILD_PHASES_V1.0.md): Phased implementation roadmap (Phases 0–10)
+
+---
+
+## 2. Technical Implementation Documents
+
+- [`ARCHITECTURE_OVERVIEW.md`](./ARCHITECTURE_OVERVIEW.md): Frontend, backend, and cross-cutting architectural principles
+- [`API_OVERVIEW.md`](./API_OVERVIEW.md): NestJS endpoint catalog, context interceptors, and Swagger integration
+- [`ENVIRONMENT_SETUP.md`](./ENVIRONMENT_SETUP.md): Step-by-step developer environment setup
+- [`DECISIONS_AND_OPEN_QUESTIONS.md`](./DECISIONS_AND_OPEN_QUESTIONS.md): Technical decisions and open questions log
+- [`REPOSITORY_STRUCTURE.md`](./REPOSITORY_STRUCTURE.md): Detailed monorepo directory hierarchy
+- [`implementation/BUILD_STATUS.md`](./implementation/BUILD_STATUS.md): Master tracker with live implementation status
 
 ---
 
 ## 3. Individual Feature Specifications
 
-All 18 feature specifications are indexed in [`features/README.md`](./features/README.md):
-- `00_PRODUCT_UI_UX_DESIGN_SYSTEM.md`: Design tokens, semantic colors, and component rules
-- `01_DASHBOARD.md`: Workspace summary metrics and daily action stream
-- `02_MY_TASKS.md`: Assigned tasks, work session timer, and completion notes
-- `03_ALL_TASKS.md`: Workspace task register, Kanban board, and workload breakdown
+All 18 feature specifications are located in [`CORVIIN_HUB_Feature_Specifications_v1.0/`](./CORVIIN_HUB_Feature_Specifications_v1.0/):
+- `00_PRODUCT_UI_UX_DESIGN_SYSTEM.md`: Shared visual language, design tokens, component rules
+- `01_DASHBOARD.md`: Dashboard summary metrics and daily work
+- `02_MY_TASKS.md`: Assigned tasks, work sessions, timer logs
+- `03_ALL_TASKS.md`: Workspace task register, Kanban, workload distribution
 - `04_PLANS_AND_GOALS.md`: Goals, plans, and milestones hierarchy
 - `05_CALENDAR_CONTENT_CAMPAIGNS.md`: Content production and campaign schedule
 - `06_CALENDAR_TEAM_TASKS.md`: Team task timetable with member accordions
@@ -51,3 +50,4 @@ All 18 feature specifications are indexed in [`features/README.md`](./features/R
 - `16_SETTINGS.md`: Personal preferences and workspace configuration
 - `17_NOTIFICATIONS_ACTIVITY_AUDIT.md`: Notification center and append-only audit trail
 - `18_GLOBAL_SEARCH_AND_CREATE_FLOWS.md`: Global search and contextual create action
+- `README.md`: Feature specification index

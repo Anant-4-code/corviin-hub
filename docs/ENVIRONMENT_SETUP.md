@@ -98,3 +98,4 @@ npm run dev:web
 - Web application will be accessible at: `http://localhost:5173`
 - Backend API will be accessible at: `http://localhost:3001/api/v1`
 - Interactive Swagger documentation at: `http://localhost:3001/api/docs`
+

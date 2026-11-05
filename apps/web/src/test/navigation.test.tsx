@@ -48,3 +48,4 @@ describe('Navigation Configurations', () => {
     expect(moreLabels).toContain('Settings');
   });
 });
+

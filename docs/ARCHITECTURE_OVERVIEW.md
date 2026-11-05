@@ -75,3 +75,4 @@ CORVIIN HUB adopts a **Modular Monolith** architecture backed by a shared relati
 ### 2.5 Single Source of Truth
 - Tasks, CRM leads, meetings, and campaign assets are modeled as canonical records.
 - Calendars, dashboards, and member workload views are dynamic query projections over existing records rather than separate, duplicate database tables.
+

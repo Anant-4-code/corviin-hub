@@ -16,3 +16,4 @@ describe('API Client & Error Handling', () => {
     expect(error.code).toBe('INTERNAL_SERVER_ERROR');
   });
 });
+

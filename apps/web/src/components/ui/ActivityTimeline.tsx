@@ -37,3 +37,4 @@ export function ActivityTimeline({ events, className }: ActivityTimelineProps) {
     </div>
   );
 }
+

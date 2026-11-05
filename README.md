@@ -90,3 +90,4 @@ For detailed architectural and module guides, consult the [`docs/`](./docs) dire
 - [docs/ENVIRONMENT_SETUP.md](./docs/ENVIRONMENT_SETUP.md): Local development setup guide
 - [docs/DECISIONS_AND_OPEN_QUESTIONS.md](./docs/DECISIONS_AND_OPEN_QUESTIONS.md): Architecture decisions log
 - [docs/implementation/BUILD_STATUS.md](./docs/implementation/BUILD_STATUS.md): Master phase and feature implementation tracker
+

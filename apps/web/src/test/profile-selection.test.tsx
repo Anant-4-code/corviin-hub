@@ -46,3 +46,4 @@ describe('Profile Selection & Switching Store', () => {
     expect(useAppStore.getState().selectedProfileId).toBeNull();
   });
 });
+
