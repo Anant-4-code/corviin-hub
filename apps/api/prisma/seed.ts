@@ -11,7 +11,11 @@ const connectionString =
   process.env.DATABASE_URL ||
   'postgresql://postgres@localhost:5433/corviin_hub?schema=public';
 
-const pool = new Pool({ connectionString });
+const isSsl = connectionString.includes('sslmode=') || connectionString.includes('supabase.com');
+const pool = new Pool({
+  connectionString,
+  ssl: isSsl ? { rejectUnauthorized: false } : undefined,
+});
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 

@@ -22,11 +22,13 @@ export class PrismaService
       process.env.DATABASE_URL ||
       'postgresql://postgres@localhost:5433/corviin_hub?schema=public';
 
+    const isSsl = connectionString.includes('sslmode=') || connectionString.includes('supabase.com');
     const pool = new Pool({
       connectionString,
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
+      ssl: isSsl ? { rejectUnauthorized: false } : undefined,
     });
 
     const adapter = new PrismaPg(pool);
