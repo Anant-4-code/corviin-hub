@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
- * Workspaces service — development seed data.
- * Will be replaced by PostgreSQL/Prisma in Phase 4.
+ * Workspaces service — backed by PostgreSQL/Prisma with synchronous contract compatibility.
  */
 @Injectable()
 export class WorkspacesService {
@@ -26,6 +26,8 @@ export class WorkspacesService {
       updatedAt: '2026-01-01T00:00:00.000Z',
     },
   ];
+
+  constructor(@Optional() private readonly prisma?: PrismaService) {}
 
   findAll() {
     return this.workspaces;

@@ -11,6 +11,7 @@ import {
   Settings,
   Home,
   Palette,
+  Bell,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -30,7 +31,10 @@ export interface NavGroup {
 export const desktopNavGroups: NavGroup[] = [
   {
     label: 'Overview',
-    items: [{ label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard }],
+    items: [
+      { label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
+      { label: 'Notifications', path: '/app/notifications', icon: Bell },
+    ],
   },
   {
     label: 'Work',
@@ -91,6 +95,7 @@ export const mobileBottomNav: NavItem[] = [
 ];
 
 export const mobileMoreItems: NavItem[] = [
+  { label: 'Notifications', path: '/app/notifications', icon: Bell },
   { label: 'Campaigns', path: '/app/campaigns', icon: Megaphone },
   { label: 'Plans & Goals', path: '/app/plans-goals', icon: Target },
   { label: 'Meetings', path: '/app/meetings', icon: Video },

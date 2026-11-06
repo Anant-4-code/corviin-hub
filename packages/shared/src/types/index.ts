@@ -2,6 +2,21 @@
 // CORVIIN HUB — Shared Types
 // ============================================================
 
+export * from './task';
+export * from './plan-goal';
+export * from './campaign';
+export * from './calendar';
+export * from './meeting';
+export * from './site-visit';
+export * from './asset';
+export * from './folder';
+export * from './crm';
+export * from './team';
+export * from './settings';
+export * from './notification';
+export * from './search';
+
+
 /** Base entity with common fields */
 export interface BaseEntity {
   id: string;
@@ -62,4 +77,14 @@ export interface HealthCheckResponse {
 export interface RequestContext {
   profileId: string;
   workspaceId: string;
+}
+
+export interface AttachmentItem {
+  id: string;
+  name: string;
+  size: number;
+  type: 'image' | 'video' | 'document' | 'archive' | 'other';
+  uploadedAt: string;
+  uploaderName?: string;
+  url?: string;
 }

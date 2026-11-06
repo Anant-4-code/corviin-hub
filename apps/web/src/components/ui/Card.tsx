@@ -1,13 +1,13 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, type HTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
-interface CardProps {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode;
   className?: string;
   muted?: boolean;
 }
 
-export function Card({ children, className, muted = false }: CardProps) {
+export function Card({ children, className, muted = false, ...props }: CardProps) {
   return (
     <div
       className={cn(
@@ -15,6 +15,7 @@ export function Card({ children, className, muted = false }: CardProps) {
         muted ? 'bg-surface-muted' : 'bg-surface',
         className,
       )}
+      {...props}
     >
       {children}
     </div>

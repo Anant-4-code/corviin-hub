@@ -1,0 +1,1054 @@
+// ============================================================
+// CORVIIN HUB — Master Prisma Schema (Phase 4)
+// PostgreSQL (Supabase / Local) & Cloudflare R2 Integration
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// 1. WORKSPACES & PROFILES
+// ============================================================
+
+model Workspace {
+  id          String   @id
+  name        String
+  slug        String   @unique
+  type        String // "TECH" | "REAL_ESTATE"
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships WorkspaceMembership[]
+  tasks       Task[]
+  campaigns   Campaign[]
+  assets      Asset[]
+  assetFolders AssetFolder[]
+  meetings    Meeting[]
+  goals       Goal[]
+  plans       Plan[]
+
+  techRecords    CrmTechRecord[]
+  partnerRecords CrmPartnerRecord[]
+  buyerRecords   CrmBuyerRecord[]
+  siteVisits     SiteVisit[]
+  followUps      CrmFollowUp[]
+  interactions   CrmInteraction[]
+
+  notifications InAppNotification[]
+  auditEvents   AuditEvent[]
+
+  settings WorkspaceSettings?
+
+  @@map("workspaces")
+}
+
+model Profile {
+  id          String    @id
+  displayName String
+  initials    String
+  email       String?
+  phone       String?
+  avatarUrl   String?
+  bio         String?
+  role        String?
+  status      String    @default("ACTIVE") // "ACTIVE" | "INACTIVE" | "ON_LEAVE" | "AWAY"
+  joinedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  memberships WorkspaceMembership[]
+  settings    PersonalSettings?
+
+  @@map("profiles")
+}
+
+model WorkspaceMembership {
+  id          String   @id @default(uuid())
+  workspaceId String
+  profileId   String
+  role        String
+  status      String   @default("ACTIVE")
+  joinedAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, profileId])
+  @@index([workspaceId])
+  @@index([profileId])
+  @@map("workspace_memberships")
+}
+
+// ============================================================
+// 2. OPERATIONAL TASKS
+// ============================================================
+
+model Task {
+  id                     String    @id
+  workspaceId            String
+  title                  String
+  description            String?
+  status                 String    @default("TODO")
+  priority               String    @default("MEDIUM")
+  assigneeId             String
+  assigneeName           String?
+  creatorId              String
+  creatorName            String?
+  plannedStart           DateTime?
+  deadline               DateTime
+  actualStart            DateTime?
+  completedAt            DateTime?
+  completedBy            String?
+  completionNote         String?
+  blockerReason          String?
+  expectedResolutionDate DateTime?
+
+  // Polymorphic Linked Record Reference
+  linkedRecordId    String?
+  linkedRecordTitle String?
+  linkedRecordType  String? // "campaign" | "meeting" | "crm" | "goal" | "task"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace         Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  checklist         TaskChecklistItem[]
+  workSessions      TaskWorkSession[]
+  rescheduleHistory TaskRescheduleHistory[]
+  comments          TaskComment[]
+  attachments       TaskAttachment[]
+  activity          TaskActivityEvent[]
+
+  @@index([workspaceId, status])
+  @@index([assigneeId])
+  @@index([deadline])
+  @@map("tasks")
+}
+
+model TaskChecklistItem {
+  id        String  @id @default(uuid())
+  taskId    String
+  title     String
+  completed Boolean @default(false)
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_checklist_items")
+}
+
+model TaskWorkSession {
+  id              String    @id @default(uuid())
+  taskId          String
+  startedAt       DateTime
+  endedAt         DateTime?
+  durationSeconds Int?
+  actorId         String
+  actorName       String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_work_sessions")
+}
+
+model TaskRescheduleHistory {
+  id              String    @id @default(uuid())
+  taskId          String
+  oldDeadline     DateTime
+  newDeadline     DateTime
+  oldPlannedStart DateTime?
+  newPlannedStart DateTime?
+  reason          String
+  actorId         String
+  actorName       String
+  timestamp       DateTime  @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_reschedule_history")
+}
+
+model TaskComment {
+  id         String   @id @default(uuid())
+  taskId     String
+  authorId   String
+  authorName String
+  content    String
+  createdAt  DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_comments")
+}
+
+model TaskAttachment {
+  id           String @id @default(uuid())
+  taskId       String
+  name         String
+  size         Int
+  type         String
+  uploadedAt   String
+  uploaderName String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_attachments")
+}
+
+model TaskActivityEvent {
+  id        String   @id @default(uuid())
+  taskId    String
+  action    String
+  actorName String
+  details   String?
+  timestamp DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("task_activity_events")
+}
+
+// ============================================================
+// 3. CAMPAIGNS (5-STAGE PIPELINE)
+// ============================================================
+
+model Campaign {
+  id                String    @id
+  workspaceId       String
+  title             String
+  description       String
+  stage             String    @default("INITIAL_IDEA")
+  ownerId           String
+  startDate         DateTime
+  targetPublishDate DateTime
+  actualPublishDate DateTime?
+  platform          String
+  priority          String    @default("MEDIUM")
+  status            String    @default("PLANNED")
+  progressPercent   Int       @default(0)
+
+  // Stage 1: Idea
+  objective      String?
+  targetAudience String?
+  conceptNotes   String?
+  referenceLinks String[] @default([])
+
+  // Stage 2: Scripting
+  finalTopic       String?
+  scriptApproved   Boolean @default(false)
+  scriptReviewerId String?
+
+  // Stage 3: Recording
+  recordingDate     DateTime?
+  recordingLocation String?
+  retakeNotes       String?
+
+  // Stage 4: Editing
+  editorId            String?
+  editingInstructions String?
+  aspectRatio         String?
+  finalAssetApproved  Boolean  @default(false)
+  finalAssetUrl       String?
+  revisionRequests    String[] @default([])
+
+  // Stage 5: Posting
+  scheduledDate     DateTime?
+  publicUrl         String?
+  publishingOwnerId String?
+  publishedProofUrl String?
+  completionDate    DateTime?
+  performanceNotes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace        Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  scripts          CampaignScript[]
+  footageChecklist CampaignFootageItem[]
+  stageHistory     CampaignStageHistory[]
+  assetLinks       CampaignAssetLink[]
+
+  @@index([workspaceId, stage])
+  @@index([ownerId])
+  @@map("campaigns")
+}
+
+model CampaignScript {
+  id            String   @id @default(uuid())
+  campaignId    String
+  versionNumber Int
+  content       String
+  hook          String?
+  shotBreakdown String?
+  cta           String?
+  caption       String?
+  hashtags      String[] @default([])
+  authorId      String
+  authorName    String
+  status        String   @default("DRAFT")
+  feedback      String?
+  timestamp     DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("campaign_scripts")
+}
+
+model CampaignFootageItem {
+  id         String  @id @default(uuid())
+  campaignId String
+  label      String
+  category   String
+  status     String  @default("DONE")
+  notes      String?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("campaign_footage_items")
+}
+
+model CampaignStageHistory {
+  id         String   @id @default(uuid())
+  campaignId String
+  fromStage  String
+  toStage    String
+  actorId    String
+  actorName  String
+  notes      String?
+  timestamp  DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@map("campaign_stage_history")
+}
+
+model CampaignAssetLink {
+  id              String   @id @default(uuid())
+  campaignId      String
+  assetId         String
+  workspaceId     String
+  title           String
+  fileName        String
+  fileSize        Int
+  mimeType        String
+  category        String
+  stage           String
+  url             String
+  uploadedBy      String
+  uploadedByName  String
+  isFinalApproved Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([assetId])
+  @@map("campaign_asset_links")
+}
+
+// ============================================================
+// 4. CRM: CORVIIN TECH PIPELINE
+// ============================================================
+
+model CrmTechRecord {
+  id                   String    @id
+  workspaceId          String
+  name                 String
+  company              String
+  phone                String
+  email                String?
+  category             String
+  stage                String    @default("NEW_ENQUIRY")
+  source               String
+  assignedMemberId     String
+  assignedMemberName   String
+  serviceType          String?
+  requirementSummary   String
+  detailedRequirements String?
+  estimatedBudget      Float?
+  businessType         String?
+  website              String?
+  location             String?
+  notes                String?
+  lostReason           String?
+  followUpLaterDate    DateTime?
+  convertedToClientId  String?
+  originalEnquiryId    String?
+  nextFollowUpDate     DateTime?
+  nextFollowUpTitle    String?
+  lastActivityDate     DateTime  @default(now())
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  workspace    Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  proposals    CrmTechProposal[]
+  projects     CrmTechProjectRef[]
+  stageHistory CrmTechStageHistory[]
+
+  @@index([workspaceId, stage])
+  @@index([phone])
+  @@index([email])
+  @@map("crm_tech_records")
+}
+
+model CrmTechProposal {
+  id           String    @id @default(uuid())
+  techRecordId String
+  title        String
+  amount       Float?
+  status       String    @default("DRAFT")
+  sentAt       DateTime?
+  referenceUrl String?
+
+  techRecord CrmTechRecord @relation(fields: [techRecordId], references: [id], onDelete: Cascade)
+
+  @@index([techRecordId])
+  @@map("crm_tech_proposals")
+}
+
+model CrmTechProjectRef {
+  id           String    @id @default(uuid())
+  techRecordId String
+  name         String
+  status       String
+  startDate    DateTime?
+
+  techRecord CrmTechRecord @relation(fields: [techRecordId], references: [id], onDelete: Cascade)
+
+  @@index([techRecordId])
+  @@map("crm_tech_project_refs")
+}
+
+model CrmTechStageHistory {
+  id           String   @id @default(uuid())
+  techRecordId String
+  stage        String
+  actorId      String
+  actorName    String
+  notes        String?
+  timestamp    DateTime @default(now())
+
+  techRecord CrmTechRecord @relation(fields: [techRecordId], references: [id], onDelete: Cascade)
+
+  @@index([techRecordId])
+  @@map("crm_tech_stage_history")
+}
+
+// ============================================================
+// 5. CRM: REAL ESTATE DEVELOPERS & PARTNERS
+// ============================================================
+
+model CrmPartnerRecord {
+  id                      String    @id
+  workspaceId             String
+  companyName             String
+  contactPerson           String?
+  phone                   String
+  email                   String?
+  partnerType             String
+  stage                   String    @default("NEW_PARTNER_LEAD")
+  assignedMemberId        String
+  assignedMemberName      String
+  location                String?
+  website                 String?
+  marketingRequirements   String[]  @default([])
+  serviceRequirementsText String?
+  partnershipInterest     String?
+  mandateSignedAt         DateTime?
+  activeSince             DateTime?
+  source                  String?
+  notes                   String?
+  tags                    String[]  @default([])
+  estimatedPortfolioValue Float?
+  nextFollowUpDate        DateTime?
+  nextFollowUpTitle       String?
+  lastActivityDate        DateTime  @default(now())
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  workspace    Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projects     CrmPartnerProject[]
+  stageHistory CrmPartnerStageHistory[]
+
+  @@index([workspaceId, stage])
+  @@index([phone])
+  @@map("crm_partner_records")
+}
+
+model CrmPartnerProject {
+  id                String   @id @default(uuid())
+  partnerRecordId   String
+  name              String
+  projectType       String?
+  location          String
+  reraNumber        String?
+  totalUnitsOrAcres String?
+  status            String   @default("UPCOMING")
+  linkedCampaignIds String[] @default([])
+
+  partnerRecord CrmPartnerRecord @relation(fields: [partnerRecordId], references: [id], onDelete: Cascade)
+
+  @@index([partnerRecordId])
+  @@map("crm_partner_projects")
+}
+
+model CrmPartnerStageHistory {
+  id                String    @id @default(uuid())
+  partnerRecordId   String
+  fromStage         String?
+  toStage           String
+  actorId           String
+  actorName         String
+  notes             String?
+  lostReason        String?
+  followUpLaterDate DateTime?
+  mandateType       String?
+  changedAt         DateTime  @default(now())
+
+  partnerRecord CrmPartnerRecord @relation(fields: [partnerRecordId], references: [id], onDelete: Cascade)
+
+  @@index([partnerRecordId])
+  @@map("crm_partner_stage_history")
+}
+
+// ============================================================
+// 6. CRM: REAL ESTATE BUYERS & SITE VISITS
+// ============================================================
+
+model CrmBuyerRecord {
+  id                     String    @id
+  workspaceId            String
+  customerName           String
+  phone                  String
+  email                  String?
+  preferredContactMethod String?
+  stage                  String    @default("NEW_ENQUIRY")
+  assignedMemberId       String
+  assignedMemberName     String
+  locality               String?
+  propertyType           String?
+  configuration          String?
+  minBudget              Float?
+  maxBudget              Float?
+  buyingTimeline         String?
+  purpose                String?
+  preferredProject       String?
+  sourceCampaign         String?
+  enquirySource          String
+  notes                  String?
+  tags                   String[]  @default([])
+  nextFollowUpDate       DateTime?
+  nextFollowUpTitle      String?
+  lastActivityDate       DateTime  @default(now())
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  workspace        Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  sharedProperties CrmBuyerSharedProperty[]
+  stageHistory     CrmBuyerStageHistory[]
+  siteVisits       SiteVisit[]
+
+  @@index([workspaceId, stage])
+  @@index([phone])
+  @@map("crm_buyer_records")
+}
+
+model CrmBuyerSharedProperty {
+  id            String   @id @default(uuid())
+  buyerRecordId String
+  name          String
+  location      String
+  propertyType  String?
+  configuration String?
+  priceEstimate Float?
+  sharedAt      DateTime @default(now())
+  feedback      String?
+
+  buyerRecord CrmBuyerRecord @relation(fields: [buyerRecordId], references: [id], onDelete: Cascade)
+
+  @@index([buyerRecordId])
+  @@map("crm_buyer_shared_properties")
+}
+
+model CrmBuyerStageHistory {
+  id                String    @id @default(uuid())
+  buyerRecordId     String
+  fromStage         String?
+  toStage           String
+  actorId           String
+  actorName         String
+  notes             String?
+  lostReason        String?
+  followUpLaterDate DateTime?
+  changedAt         DateTime  @default(now())
+
+  buyerRecord CrmBuyerRecord @relation(fields: [buyerRecordId], references: [id], onDelete: Cascade)
+
+  @@index([buyerRecordId])
+  @@map("crm_buyer_stage_history")
+}
+
+model SiteVisit {
+  id                    String   @id
+  workspaceId           String
+  buyerRecordId         String?
+  customerName          String
+  customerPhone         String
+  projectName           String
+  projectLocation       String
+  propertyUnit          String?
+  visitDate             String // YYYY-MM-DD
+  startTime             DateTime
+  endTime               DateTime
+  status                String   @default("PLANNED")
+  responsibleMemberId   String
+  responsibleMemberName String
+  notes                 String?
+  feedback              String?
+  objections            String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  buyerRecord CrmBuyerRecord? @relation(fields: [buyerRecordId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, visitDate])
+  @@index([buyerRecordId])
+  @@map("site_visits")
+}
+
+// ============================================================
+// 7. CRM FOLLOW-UPS & INTERACTIONS (SHARED)
+// ============================================================
+
+model CrmFollowUp {
+  id                 String    @id
+  workspaceId        String
+  recordId           String
+  recordType         String
+  recordTitle        String
+  title              String
+  assignedMemberId   String
+  assignedMemberName String
+  dueDate            DateTime
+  status             String    @default("PENDING")
+  priority           String?
+  completedAt        DateTime?
+  completedBy        String?
+  completionNotes    String?
+  linkedTaskId       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@index([dueDate])
+  @@map("crm_follow_ups")
+}
+
+model CrmInteraction {
+  id          String   @id
+  workspaceId String
+  recordId    String
+  recordType  String
+  type        String
+  title       String
+  description String?
+  actorId     String
+  actorName   String
+  timestamp   DateTime @default(now())
+  metadata    Json?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, recordId])
+  @@map("crm_interactions")
+}
+
+// ============================================================
+// 8. MEETINGS
+// ============================================================
+
+model Meeting {
+  id                   String   @id
+  workspaceId          String
+  title                String
+  category             String
+  status               String   @default("SCHEDULED")
+  date                 String // YYYY-MM-DD
+  startTime            DateTime
+  endTime              DateTime
+  organiserId          String
+  participantIds       String[] @default([])
+  externalParticipants String[] @default([])
+  location             String?
+  meetingUrl           String?
+  phoneNumber          String?
+  agenda               String?
+  notes                String?
+  decisions            String[] @default([])
+
+  linkedRecordId    String?
+  linkedRecordTitle String?
+  linkedRecordType  String?
+
+  preparation   Json?
+  detailedNotes Json?
+  outcome       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspace       Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actionItems     MeetingActionItem[]
+  topics          MeetingAgendaTopic[]
+  formalDecisions MeetingDecision[]
+
+  @@index([workspaceId, date])
+  @@index([organiserId])
+  @@map("meetings")
+}
+
+model MeetingActionItem {
+  id               String    @id @default(uuid())
+  meetingId        String
+  description      String
+  assignedMemberId String
+  dueDate          DateTime?
+  priority         String?
+  status           String    @default("PENDING")
+  convertedTaskId  String?
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@map("meeting_action_items")
+}
+
+model MeetingAgendaTopic {
+  id          String  @id @default(uuid())
+  meetingId   String
+  topic       String
+  ownerId     String?
+  timeMinutes Int?
+  completed   Boolean @default(false)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@map("meeting_agenda_topics")
+}
+
+model MeetingDecision {
+  id                  String    @id @default(uuid())
+  meetingId           String
+  decisionText        String
+  responsiblePersonId String?
+  dueDate             DateTime?
+  supportingFiles     String[]  @default([])
+  createdByName       String?
+  createdAt           DateTime  @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@map("meeting_decisions")
+}
+
+// ============================================================
+// 9. PLANS & STRATEGIC GOALS
+// ============================================================
+
+model Goal {
+  id                 String    @id
+  workspaceId        String
+  title              String
+  expectedOutcome    String
+  ownerId            String
+  ownerName          String
+  targetDate         DateTime
+  startDate          DateTime?
+  priority           String    @default("MEDIUM")
+  status             String    @default("NOT_STARTED")
+  progressMode       String    @default("MANUAL")
+  progressPercent    Int       @default(0)
+  isAtRisk           Boolean   @default(false)
+  riskReason         String?
+  metricName         String?
+  metricTargetValue  Float?
+  metricCurrentValue Float?
+  metricUnit         String?
+  participantIds     String[]  @default([])
+  linkedPlanIds      String[]  @default([])
+  linkedCampaignIds  String[]  @default([])
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@map("goals")
+}
+
+model Plan {
+  id                String   @id
+  workspaceId       String
+  goalId            String?
+  goalTitle         String?
+  title             String
+  strategySummary   String
+  ownerId           String
+  ownerName         String
+  startDate         DateTime
+  targetDate        DateTime
+  priority          String   @default("MEDIUM")
+  status            String   @default("DRAFT")
+  progressMode      String   @default("MANUAL")
+  progressPercent   Int      @default(0)
+  isAtRisk          Boolean  @default(false)
+  riskReason        String?
+  participantIds    String[] @default([])
+  resources         String[] @default([])
+  risks             String[] @default([])
+  linkedCampaignIds String[] @default([])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  workspace  Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  milestones PlanMilestone[]
+
+  @@index([workspaceId, status])
+  @@map("plans")
+}
+
+model PlanMilestone {
+  id          String    @id @default(uuid())
+  planId      String
+  title       String
+  description String?
+  ownerId     String?
+  ownerName   String?
+  dueDate     DateTime
+  status      String    @default("PENDING")
+  completedAt DateTime?
+  orderIndex  Int       @default(0)
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId])
+  @@map("plan_milestones")
+}
+
+// ============================================================
+// 10. ASSETS & OBJECT STORAGE METADATA
+// ============================================================
+
+model Asset {
+  id                   String   @id
+  workspaceId          String
+  folderId             String?
+  title                String
+  originalFileName     String
+  storageKey           String   @unique
+  storageProvider      String   @default("r2") // "r2" | "s3" | "mock"
+  mimeType             String
+  sizeBytes            Float
+  category             String
+  typeGroup            String
+  uploaderId           String
+  uploaderName         String
+  currentVersionNumber Int      @default(1)
+  tags                 String[] @default([])
+  description          String?
+  previewUrl           String?
+  archivedAt           DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  workspace     Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  folder        AssetFolder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  versions      AssetVersion[]
+  relationships AssetRelationship[]
+
+  @@index([workspaceId, category])
+  @@index([workspaceId, typeGroup])
+  @@index([workspaceId, folderId])
+  @@map("assets")
+}
+
+model AssetFolder {
+  id             String    @id
+  workspaceId    String
+  name           String
+  description    String?
+  parentFolderId String?
+  color          String?
+  icon           String?
+  createdBy      String
+  createdByName  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  archivedAt     DateTime?
+
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parentFolder AssetFolder?  @relation("FolderHierarchy", fields: [parentFolderId], references: [id], onDelete: Cascade)
+  subfolders   AssetFolder[] @relation("FolderHierarchy")
+  assets       Asset[]
+
+  @@index([workspaceId])
+  @@index([parentFolderId])
+  @@map("asset_folders")
+}
+
+model AssetVersion {
+  id            String   @id @default(uuid())
+  assetId       String
+  versionNumber Int
+  fileName      String
+  storageKey    String
+  sizeBytes     Float
+  mimeType      String
+  uploaderId    String
+  uploaderName  String
+  changeNote    String?
+  createdAt     DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@map("asset_versions")
+}
+
+model AssetRelationship {
+  id           String   @id @default(uuid())
+  assetId      String
+  relatedType  String
+  relatedId    String
+  relatedTitle String
+  stage        String?
+  createdAt    DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([relatedType, relatedId])
+  @@map("asset_relationships")
+}
+
+// ============================================================
+// 11. NOTIFICATIONS & APPEND-ONLY AUDIT TRAIL
+// ============================================================
+
+model InAppNotification {
+  id                String    @id
+  workspaceId       String
+  recipientId       String
+  actorId           String
+  actorName         String
+  type              String
+  title             String
+  message           String
+  entityType        String
+  entityId          String
+  actionDestination String
+  isRead            Boolean   @default(false)
+  readAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, recipientId, isRead])
+  @@index([createdAt])
+  @@map("in_app_notifications")
+}
+
+model AuditEvent {
+  id             String   @id
+  workspaceId    String
+  actorId        String
+  actorName      String
+  actingRole     String?
+  entityType     String
+  entityId       String
+  action         String
+  timestamp      DateTime @default(now())
+  reason         String?
+  correlationId  String?
+  previousValues Json?
+  newValues      Json?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, entityType, entityId])
+  @@index([timestamp])
+  @@map("audit_events")
+}
+
+// ============================================================
+// 12. SETTINGS (PERSONAL & WORKSPACE)
+// ============================================================
+
+model PersonalSettings {
+  id                  String   @id @default(uuid())
+  profileId           String   @unique
+  displayName         String
+  email               String?
+  phone               String?
+  initials            String
+  bio                 String?
+  role                String?
+  timezone            String   @default("Asia/Kolkata")
+  dateFormat          String   @default("DD/MM/YYYY")
+  timeFormat          String   @default("12h")
+  weekStartDay        String   @default("MONDAY")
+  defaultCalendarView String   @default("WEEK")
+  theme               String   @default("light")
+  notifications       Json
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("personal_settings")
+}
+
+model WorkspaceSettings {
+  id                  String   @id @default(uuid())
+  workspaceId         String   @unique
+  workspaceName       String
+  slug                String
+  type                String
+  primaryCurrency     String   @default("INR")
+  timeZone            String   @default("Asia/Kolkata")
+  defaultTaskPriority String   @default("MEDIUM")
+  defaultTaskDueDays  Int      @default(1)
+  autoAssignCreator   Boolean  @default(true)
+  allowedCategories   String[] @default([])
+  allowedStages       String[] @default([])
+  storageQuotaBytes   Float    @default(10737418240) // 10 GB
+  maxUploadSizeBytes  Float    @default(52428800) // 50 MB
+  allowedMimeTypes    String[] @default([])
+  alertChannelInApp   Boolean  @default(true)
+  alertChannelEmail   Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_settings")
+}

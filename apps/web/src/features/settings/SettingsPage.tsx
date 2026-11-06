@@ -1,131 +1,289 @@
-import { Link } from 'react-router-dom';
-import { Palette, Sun, Moon, Laptop, ArrowRight } from 'lucide-react';
-import { Card, CardHeader, CardBody, Button } from '@/components/ui';
-import { useTheme } from '@/app/providers/ThemeProvider';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAppStore } from '@/lib/store';
+import {
+  fetchPersonalSettings,
+  updatePersonalSettings,
+  fetchAccountSecurity,
+  fetchWorkspaceSettings,
+  updateWorkspaceSettings,
+  resetWorkspaceSettings,
+} from '@/services/settings';
+import type {
+  UpdatePersonalSettingsDto,
+  UpdateWorkspaceSettingsDto,
+  SupportedTheme,
+} from '@corviin-hub/shared';
+import {
+  SettingsScopeNavigation,
+  PersonalProfileSection,
+  AppearanceSection,
+  RegionalAndCalendarSection,
+  PersonalNotificationsSection,
+  AccountSecuritySection,
+  WorkspaceGeneralSection,
+  WorkspaceTaskDefaultsSection,
+  WorkspaceCampaignsSection,
+  WorkspaceCrmSection,
+  WorkspaceStorageSection,
+  WorkspaceNotificationsSection,
+  WorkspaceAccessBackupSection,
+} from './components';
+import type { SettingsScope, PersonalTab, WorkspaceTab } from './components';
 
 export function SettingsPage() {
-  const { theme, setTheme } = useTheme();
+  const queryClient = useQueryClient();
+  const selectedWorkspaceId = useAppStore((s) => s.selectedWorkspaceId);
+  const selectedProfileId = useAppStore((s) => s.selectedProfileId);
+
+  const activeWorkspaceId = selectedWorkspaceId || 'ws-tech-0001-0000-000000000001';
+  const activeProfileId = selectedProfileId || undefined;
+
+  const [scope, setScope] = useState<SettingsScope>('PERSONAL');
+  const [personalTab, setPersonalTab] = useState<PersonalTab>('profile');
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('general');
+
+  // 1. Fetch personal settings
+  const {
+    data: personalSettings,
+    isLoading: isPersonalLoading,
+    error: personalError,
+  } = useQuery({
+    queryKey: ['settings', 'personal', activeProfileId],
+    queryFn: () => fetchPersonalSettings(activeProfileId),
+    staleTime: 60000,
+  });
+
+  // 2. Fetch security summary
+  const {
+    data: securitySummary,
+    isLoading: isSecurityLoading,
+  } = useQuery({
+    queryKey: ['settings', 'security', activeProfileId],
+    queryFn: () => fetchAccountSecurity(activeProfileId),
+    staleTime: 60000,
+  });
+
+  // 3. Fetch workspace settings
+  const {
+    data: workspaceSettings,
+    isLoading: isWorkspaceLoading,
+    error: workspaceError,
+  } = useQuery({
+    queryKey: ['settings', 'workspace', activeWorkspaceId],
+    queryFn: () => fetchWorkspaceSettings(activeWorkspaceId),
+    staleTime: 60000,
+  });
+
+  // Personal settings update mutation
+  const updatePersonalMutation = useMutation({
+    mutationFn: (dto: UpdatePersonalSettingsDto) =>
+      updatePersonalSettings(dto, activeProfileId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['settings', 'personal', activeProfileId], updated);
+      queryClient.invalidateQueries({ queryKey: ['team', 'members'] });
+    },
+  });
+
+  // Workspace settings update mutation
+  const updateWorkspaceMutation = useMutation({
+    mutationFn: (dto: UpdateWorkspaceSettingsDto) =>
+      updateWorkspaceSettings(activeWorkspaceId, dto),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['settings', 'workspace', activeWorkspaceId], updated);
+      queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] });
+    },
+  });
+
+  // Reset workspace settings mutation
+  const resetWorkspaceMutation = useMutation({
+    mutationFn: () => resetWorkspaceSettings(activeWorkspaceId),
+    onSuccess: (reset) => {
+      queryClient.setQueryData(['settings', 'workspace', activeWorkspaceId], reset);
+      queryClient.invalidateQueries({ queryKey: ['workspace', activeWorkspaceId] });
+    },
+  });
+
+  const isLoading = isPersonalLoading || isWorkspaceLoading || isSecurityLoading;
+  const isError = personalError || workspaceError;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-xl font-bold text-primary">Settings & Preferences</h1>
+          <p className="text-xs text-secondary mt-0.5">
+            Loading personal preferences and workspace configuration...
+          </p>
+        </div>
+        <div className="p-8 text-center text-xs text-secondary bg-surface border border-border rounded-lg">
+          Loading settings...
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !personalSettings || !workspaceSettings || !securitySummary) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-xl font-bold text-primary">Settings & Preferences</h1>
+          <p className="text-xs text-secondary mt-0.5">Error loading configuration</p>
+        </div>
+        <div className="p-6 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-lg text-xs text-rose-800 dark:text-rose-200 space-y-2">
+          <div className="font-semibold">Unable to load settings</div>
+          <p>An error occurred while loading settings for the selected workspace or profile.</p>
+          <button
+            type="button"
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['settings'] });
+            }}
+            className="px-3 py-1.5 rounded bg-surface text-primary border border-border font-semibold hover:bg-surface-muted min-h-[36px]"
+          >
+            Retry Request
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="space-y-5">
+      {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-ch-text-primary">Settings</h1>
-        <p className="mt-1 text-sm text-ch-text-secondary">
-          Personal profile preferences, theme configuration, and workspace operations.
+        <h1 className="text-xl font-bold text-primary">Settings & Preferences</h1>
+        <p className="text-xs text-secondary mt-0.5">
+          Configure personal account preferences, theme styling, and isolated workspace operational parameters.
         </p>
       </div>
 
-      {/* Theme Preference */}
-      <Card>
-        <CardHeader>
-          <div>
-            <h2 className="text-sm font-semibold text-ch-text-primary">Appearance & Theme</h2>
-            <p className="text-xs text-ch-text-secondary mt-0.5">
-              Select your interface theme. Preferences persist locally on this device.
-            </p>
+      {/* Scope and Sub-Navigation */}
+      <SettingsScopeNavigation
+        scope={scope}
+        onScopeChange={setScope}
+        personalTab={personalTab}
+        onPersonalTabChange={setPersonalTab}
+        workspaceTab={workspaceTab}
+        onWorkspaceTabChange={setWorkspaceTab}
+        workspaceName={workspaceSettings.displayName}
+      />
+
+      {/* Content Area */}
+      <div>
+        {scope === 'PERSONAL' && (
+          <div className="space-y-4">
+            {personalTab === 'profile' && (
+              <PersonalProfileSection
+                settings={personalSettings}
+                onSave={async (dto) => {
+                  await updatePersonalMutation.mutateAsync(dto);
+                }}
+                isSaving={updatePersonalMutation.isPending}
+              />
+            )}
+
+            {personalTab === 'appearance' && (
+              <AppearanceSection
+                onThemeSaved={async (theme: SupportedTheme) => {
+                  await updatePersonalMutation.mutateAsync({ theme });
+                }}
+              />
+            )}
+
+            {personalTab === 'regional' && (
+              <RegionalAndCalendarSection
+                settings={personalSettings}
+                onSave={async (dto) => {
+                  await updatePersonalMutation.mutateAsync(dto);
+                }}
+                isSaving={updatePersonalMutation.isPending}
+              />
+            )}
+
+            {personalTab === 'notifications' && (
+              <PersonalNotificationsSection
+                settings={personalSettings}
+                onSave={async (dto) => {
+                  await updatePersonalMutation.mutateAsync(dto);
+                }}
+                isSaving={updatePersonalMutation.isPending}
+              />
+            )}
+
+            {personalTab === 'security' && (
+              <AccountSecuritySection securitySummary={securitySummary} />
+            )}
           </div>
-        </CardHeader>
-        <CardBody>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <button
-              type="button"
-              onClick={() => setTheme('light')}
-              className={`p-4 rounded-card border text-left flex flex-col justify-between h-24 ${
-                theme === 'light'
-                  ? 'border-accent bg-surface-selected ring-1 ring-accent'
-                  : 'border-ch-border bg-surface hover:bg-surface-muted'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <Sun size={20} className={theme === 'light' ? 'text-accent' : 'text-ch-text-secondary'} />
-                {theme === 'light' && <span className="text-xs font-semibold text-accent">Active</span>}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-ch-text-primary">Light Theme</p>
-                <p className="text-xs text-ch-text-secondary">Clean warm neutral palette</p>
-              </div>
-            </button>
+        )}
 
-            <button
-              type="button"
-              onClick={() => setTheme('dark')}
-              className={`p-4 rounded-card border text-left flex flex-col justify-between h-24 ${
-                theme === 'dark'
-                  ? 'border-accent bg-surface-selected ring-1 ring-accent'
-                  : 'border-ch-border bg-surface hover:bg-surface-muted'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <Moon size={20} className={theme === 'dark' ? 'text-accent' : 'text-ch-text-secondary'} />
-                {theme === 'dark' && <span className="text-xs font-semibold text-accent">Active</span>}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-ch-text-primary">Dark Theme</p>
-                <p className="text-xs text-ch-text-secondary">Graphite background with high contrast</p>
-              </div>
-            </button>
+        {scope === 'WORKSPACE' && (
+          <div className="space-y-4">
+            {workspaceTab === 'general' && (
+              <WorkspaceGeneralSection
+                settings={workspaceSettings}
+                onSave={async (dto) => {
+                  await updateWorkspaceMutation.mutateAsync(dto);
+                }}
+                isSaving={updateWorkspaceMutation.isPending}
+              />
+            )}
 
-            <button
-              type="button"
-              onClick={() => setTheme('system')}
-              className={`p-4 rounded-card border text-left flex flex-col justify-between h-24 ${
-                theme === 'system'
-                  ? 'border-accent bg-surface-selected ring-1 ring-accent'
-                  : 'border-ch-border bg-surface hover:bg-surface-muted'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <Laptop size={20} className={theme === 'system' ? 'text-accent' : 'text-ch-text-secondary'} />
-                {theme === 'system' && <span className="text-xs font-semibold text-accent">Active</span>}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-ch-text-primary">System Theme</p>
-                <p className="text-xs text-ch-text-secondary">Follows OS display preference</p>
-              </div>
-            </button>
+            {workspaceTab === 'tasks' && (
+              <WorkspaceTaskDefaultsSection
+                settings={workspaceSettings}
+                onSave={async (dto) => {
+                  await updateWorkspaceMutation.mutateAsync(dto);
+                }}
+                isSaving={updateWorkspaceMutation.isPending}
+              />
+            )}
+
+            {workspaceTab === 'campaigns' && (
+              <WorkspaceCampaignsSection
+                settings={workspaceSettings}
+                onSave={async (dto) => {
+                  await updateWorkspaceMutation.mutateAsync(dto);
+                }}
+                isSaving={updateWorkspaceMutation.isPending}
+              />
+            )}
+
+            {workspaceTab === 'crm' && (
+              <WorkspaceCrmSection
+                settings={workspaceSettings}
+                onSave={async (dto) => {
+                  await updateWorkspaceMutation.mutateAsync(dto);
+                }}
+                isSaving={updateWorkspaceMutation.isPending}
+              />
+            )}
+
+            {workspaceTab === 'storage' && (
+              <WorkspaceStorageSection settings={workspaceSettings} />
+            )}
+
+            {workspaceTab === 'ws_notifications' && (
+              <WorkspaceNotificationsSection
+                settings={workspaceSettings}
+                onSave={async (dto) => {
+                  await updateWorkspaceMutation.mutateAsync(dto);
+                }}
+                isSaving={updateWorkspaceMutation.isPending}
+              />
+            )}
+
+            {workspaceTab === 'backup' && (
+              <WorkspaceAccessBackupSection
+                settings={workspaceSettings}
+                onResetDefaults={async () => {
+                  await resetWorkspaceMutation.mutateAsync();
+                }}
+                isResetting={resetWorkspaceMutation.isPending}
+              />
+            )}
           </div>
-        </CardBody>
-      </Card>
-
-      {/* Design System Preview Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Palette size={18} className="text-accent" />
-            <h2 className="text-sm font-semibold text-ch-text-primary">
-              UI/UX Design System Catalog
-            </h2>
-          </div>
-        </CardHeader>
-        <CardBody className="space-y-3">
-          <p className="text-sm text-ch-text-secondary">
-            Inspect all shared CORVIIN HUB interface primitives, color token swatches, typography scale,
-            buttons, form controls, responsive record lists, drawers, modals, file uploaders, and system
-            states across both Light and Dark themes.
-          </p>
-          <Link to="/app/design-system">
-            <Button variant="primary" size="md" className="gap-2">
-              Open Design System Preview <ArrowRight size={15} />
-            </Button>
-          </Link>
-        </CardBody>
-      </Card>
-
-      {/* Workspace Information */}
-      <Card>
-        <CardHeader>
-          <h2 className="text-sm font-semibold text-ch-text-primary">Workspace Configuration</h2>
-        </CardHeader>
-        <CardBody className="space-y-2 text-sm text-ch-text-secondary">
-          <p>
-            CORVIIN HUB operates two isolated business workspaces: <strong>Corviin Tech</strong> and{' '}
-            <strong>Corviin Real Estate</strong>.
-          </p>
-          <p className="text-xs text-ch-text-muted">
-            Workspace data, task pipelines, and assets are completely scoped. Use the top bar switcher to toggle active business context.
-          </p>
-        </CardBody>
-      </Card>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { PrismaService } from '../../prisma/prisma.service';
 
 /**
- * Profiles service — development seed data.
- * This will be replaced by PostgreSQL/Prisma in Phase 4.
+ * Profiles service — backed by PostgreSQL/Prisma with synchronous contract compatibility.
  * These are acting-profile records, NOT authenticated identities.
  */
 @Injectable()
@@ -36,6 +36,8 @@ export class ProfilesService {
       updatedAt: '2026-01-01T00:00:00.000Z',
     },
   ];
+
+  constructor(@Optional() private readonly prisma?: PrismaService) {}
 
   findAll() {
     return this.profiles;

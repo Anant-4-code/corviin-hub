@@ -18,6 +18,7 @@ interface AttachmentListProps {
   onRemove?: (item: AttachmentItem) => void;
   readOnly?: boolean;
   className?: string;
+  emptyMessage?: string;
 }
 
 export function AttachmentList({
@@ -26,6 +27,7 @@ export function AttachmentList({
   onRemove,
   readOnly = false,
   className,
+  emptyMessage = 'No attachments yet',
 }: AttachmentListProps) {
   const formatSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -107,3 +109,4 @@ export function AttachmentList({
     </div>
   );
 }
+

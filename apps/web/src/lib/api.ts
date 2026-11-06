@@ -27,11 +27,12 @@ function getHeaders(): Record<string, string> {
   return headers;
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, path: string, body?: unknown, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: getHeaders(),
+    headers: { ...getHeaders(), ...(init?.headers as Record<string, string>) },
     body: body ? JSON.stringify(body) : undefined,
+    signal: init?.signal,
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -41,9 +42,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
-  patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
-  delete: <T>(path: string) => request<T>('DELETE', path),
+  get: <T>(path: string, init?: RequestInit) => request<T>('GET', path, undefined, init),
+  post: <T>(path: string, body?: unknown, init?: RequestInit) => request<T>('POST', path, body, init),
+  patch: <T>(path: string, body?: unknown, init?: RequestInit) => request<T>('PATCH', path, body, init),
+  delete: <T>(path: string, body?: unknown, init?: RequestInit) => request<T>('DELETE', path, body, init),
 };
 

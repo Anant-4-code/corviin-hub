@@ -25,6 +25,7 @@ import { MeetingsPage } from '@/features/meetings/MeetingsPage';
 import { MeetingDetailPage } from '@/features/meetings/MeetingDetailPage';
 import { TeamPage } from '@/features/team/TeamPage';
 import { TeamMemberPage } from '@/features/team/TeamMemberPage';
+import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { DesignSystemPreviewPage } from '@/features/design-system/DesignSystemPreviewPage';
 import { NotFoundPage } from '@/features/common/NotFoundPage';
@@ -78,6 +79,7 @@ export function AppRouter() {
         <Route path="meetings/:meetingId" element={<MeetingDetailPage />} />
         <Route path="team" element={<TeamPage />} />
         <Route path="team/:memberId" element={<TeamMemberPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="design-system" element={<DesignSystemPreviewPage />} />
       </Route>

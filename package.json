@@ -3,9 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "description": "CORVIIN HUB — Internal operations platform for Corviin Group",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "npm run dev:web & npm run dev:api",
+    "dev": "concurrently -n \"web,api\" -c \"cyan,magenta\" \"npm -w apps/web run dev\" \"npm -w apps/api run dev\"",
     "dev:web": "npm -w apps/web run dev",
     "dev:api": "npm -w apps/api run dev",
     "build": "npm run build:shared && npm run build:web && npm run build:api",
@@ -19,6 +22,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\""
   },
   "devDependencies": {
+    "concurrently": "^10.0.6",
     "prettier": "^3.4.0",
     "typescript": "^5.6.0"
   },
