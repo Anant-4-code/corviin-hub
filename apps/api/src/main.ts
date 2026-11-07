@@ -1,6 +1,9 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as express from 'express';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter, ActingContextGuard } from './common';
 import { PrismaService } from './prisma/prisma.service';
@@ -11,10 +14,10 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug'],
   });
 
-  // Global prefix
+  // Global prefix for all API routes
   app.setGlobalPrefix('api/v1');
 
-  // CORS
+  // CORS (allow self-origin and any configured origins)
   const corsOrigins = process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173'];
   app.enableCors({
     origin: corsOrigins,
@@ -52,10 +55,24 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.API_PORT || 3001;
+  // Single deployment: serve built web frontend if apps/web/dist exists
+  const clientDistPath = path.resolve(__dirname, '../../web/dist');
+  if (fs.existsSync(clientDistPath)) {
+    const expressApp = app.getHttpAdapter().getInstance();
+    expressApp.use(express.static(clientDistPath));
+    expressApp.get('*', (req: any, res: any, next: any) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      res.sendFile(path.join(clientDistPath, 'index.html'));
+    });
+    logger.log(`Serving Web frontend from: ${clientDistPath}`);
+  }
+
+  const port = process.env.PORT || process.env.API_PORT || 3001;
   const host = process.env.API_HOST || '0.0.0.0';
   await app.listen(port, host);
-  logger.log(`CORVIIN HUB API running on http://${host}:${port}`);
+  logger.log(`CORVIIN HUB running on http://${host}:${port}`);
   logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
 }
 bootstrap();

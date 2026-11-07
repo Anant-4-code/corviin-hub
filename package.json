@@ -15,6 +15,7 @@
     "build:shared": "npm -w packages/shared run build",
     "build:web": "npm -w apps/web run build",
     "build:api": "npm -w apps/api run build",
+    "start": "node apps/api/dist/main.js",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
