@@ -83,7 +83,7 @@ export class DashboardService {
       ]);
 
       const storageBytesUsed = assets.reduce(
-        (sum, a) => sum + (a.sizeBytes || 0),
+        (sum: number, a: { sizeBytes: number | null }) => sum + (a.sizeBytes || 0),
         0,
       );
       const crmLeadsCount = techLeads + partners + buyers;
