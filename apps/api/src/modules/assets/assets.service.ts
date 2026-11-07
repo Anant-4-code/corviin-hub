@@ -73,15 +73,13 @@ export class AssetsService {
     @Optional() private readonly notificationsService?: NotificationsService,
     @Optional() private readonly storageService?: StorageService,
   ) {
-    // Clean initial state (no dummy assets)
+    // this.seedInitialAssets();
   }
 
   // ==========================================
   // INITIAL SEED DATA
   // ==========================================
   private seedInitialAssets() {
-    // No-op for production clean slate
-  }
     const techWs = 'ws-tech-0001-0000-000000000001';
     const realWs = 'ws-real-0002-0000-000000000002';
 

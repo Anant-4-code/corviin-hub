@@ -18,16 +18,20 @@ export class PrismaService
   private isConnected = false;
 
   constructor() {
-    const connectionString =
+    const rawConnectionString =
       process.env.DATABASE_URL ||
       'postgresql://postgres@localhost:5433/corviin_hub?schema=public';
 
-    const isSsl = connectionString.includes('sslmode=') || connectionString.includes('supabase.com');
+    const isSsl = rawConnectionString.includes('sslmode=') || rawConnectionString.includes('supabase.com');
+    // Strip sslmode parameter from the URL string when using explicit Pool ssl options
+    // to prevent Node 'pg' driver from enforcing rejectUnauthorized: true against self-signed Supabase certificates
+    const connectionString = rawConnectionString.replace(/[?&]sslmode=[^&]+/g, '');
+
     const pool = new Pool({
       connectionString,
       max: 10,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 10000,
       ssl: isSsl ? { rejectUnauthorized: false } : undefined,
     });
 

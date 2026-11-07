@@ -17,8 +17,15 @@ See the complete implementation build status tracking in:
 
 ### Current Test Counts
 - **Backend Tests (`apps/api`):** 252 tests passed (189 unit + 63 e2e)
-- **Frontend Tests (`apps/web`):** 181 tests passed
-- **Total:** 433 automated tests passed (100% pass rate)
+- **Frontend Tests (`apps/web`):** 184 tests passed (including redesigned Profile Selection test suite)
+- **Total:** 436 automated tests passed (100% pass rate)
+
+### Page Redesign Status
+- **PAGE 01 — Profile Selection (`/select-profile`):** COMPLETE
+  - Blue/Yellow Light & Dark Themes implemented
+  - Responsive Desktop (3-col), Tablet (2-col), and Mobile-first (1-col) layouts
+  - Accessible Radiogroup + explicit Continue action
+  - Verified across multiple viewports with 100% tests passing
 
 ### Phase 9 Core Reports
 - [Test Report](docs/TEST_REPORT.md)
