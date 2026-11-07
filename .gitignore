@@ -17,3 +17,4 @@ ios/
 # Local PostgreSQL cluster
 .pgdata/
 apps/api/.pgdata/
+screenshots/

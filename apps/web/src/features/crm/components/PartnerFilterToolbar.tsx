@@ -21,6 +21,8 @@ interface PartnerFilterToolbarProps {
   onViewModeChange: (mode: 'table' | 'board') => void;
   onOpenCreate: () => void;
   members: Array<{ id: string; name: string }>;
+  totalCount?: number;
+  filteredCount?: number;
 }
 
 export const PartnerFilterToolbar: React.FC<PartnerFilterToolbarProps> = ({
@@ -30,6 +32,8 @@ export const PartnerFilterToolbar: React.FC<PartnerFilterToolbarProps> = ({
   onViewModeChange,
   onOpenCreate,
   members,
+  totalCount,
+  filteredCount,
 }) => {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onFilterChange({ ...filter, search: e.target.value, page: 1 });
@@ -73,6 +77,7 @@ export const PartnerFilterToolbar: React.FC<PartnerFilterToolbarProps> = ({
       partnerType: undefined,
       stage: undefined,
       assignedMemberId: undefined,
+      location: undefined,
       followUpDue: 'ALL',
       page: 1,
     });
@@ -80,19 +85,20 @@ export const PartnerFilterToolbar: React.FC<PartnerFilterToolbarProps> = ({
 
   const hasActiveFilters = Boolean(
     filter.search ||
-    filter.partnerType ||
-    filter.stage ||
-    filter.assignedMemberId ||
-    (filter.followUpDue && filter.followUpDue !== 'ALL'),
+      filter.partnerType ||
+      filter.stage ||
+      filter.assignedMemberId ||
+      filter.location ||
+      (filter.followUpDue && filter.followUpDue !== 'ALL'),
   );
 
   return (
     <div className="bg-surface border border-ch-border rounded-lg p-3 space-y-3 mb-4">
-      {/* Top Bar: Search, View Mode, Primary Action */}
+      {/* Top Bar: Search, View Mode, Result Count, Primary Action */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="relative flex-1">
           <Input
-            placeholder="Search partners by company, contact, phone, location, project..."
+            placeholder="Search partners by name, contact, phone, location, project..."
             value={filter.search || ''}
             onChange={handleSearchChange}
             className="w-full text-sm"
@@ -100,14 +106,25 @@ export const PartnerFilterToolbar: React.FC<PartnerFilterToolbarProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Result Count Indicator */}
+          {typeof filteredCount === 'number' && (
+            <span className="text-xs text-ch-text-secondary hidden md:inline-block">
+              Showing <strong>{filteredCount}</strong>
+              {typeof totalCount === 'number' && totalCount !== filteredCount
+                ? ` of ${totalCount}`
+                : ''}{' '}
+              partners
+            </span>
+          )}
+
           {/* View Mode Toggle */}
           <div className="flex rounded-md border border-ch-border bg-ch-bg p-0.5" role="group">
             <button
               type="button"
               onClick={() => onViewModeChange('table')}
-              className={`px-3 py-1.5 text-xs font-medium rounded ${
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-none ${
                 viewMode === 'table'
-                  ? 'bg-surface text-ch-text-primary shadow-sm'
+                  ? 'bg-surface text-ch-text-primary shadow-sm font-semibold'
                   : 'text-ch-text-secondary hover:text-ch-text-primary'
               }`}
             >
@@ -116,9 +133,9 @@ export const PartnerFilterToolbar: React.FC<PartnerFilterToolbarProps> = ({
             <button
               type="button"
               onClick={() => onViewModeChange('board')}
-              className={`px-3 py-1.5 text-xs font-medium rounded ${
+              className={`px-3 py-1.5 text-xs font-medium rounded transition-none ${
                 viewMode === 'board'
-                  ? 'bg-surface text-ch-text-primary shadow-sm'
+                  ? 'bg-surface text-ch-text-primary shadow-sm font-semibold'
                   : 'text-ch-text-secondary hover:text-ch-text-primary'
               }`}
             >
@@ -126,15 +143,15 @@ export const PartnerFilterToolbar: React.FC<PartnerFilterToolbarProps> = ({
             </button>
           </div>
 
-          <Button onClick={onOpenCreate} variant="primary" className="whitespace-nowrap">
+          <Button onClick={onOpenCreate} variant="primary" className="whitespace-nowrap text-xs">
             + Add Partner
           </Button>
         </div>
       </div>
 
-      {/* Filter Row */}
+      {/* Filter Row: Category, Stage, Member, Follow-up */}
       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-ch-border">
-        {/* Partner Type */}
+        {/* Partner Type / Category */}
         <div className="w-full sm:w-auto">
           <Select
             value={filter.partnerType || ''}
@@ -217,6 +234,73 @@ export const PartnerFilterToolbar: React.FC<PartnerFilterToolbarProps> = ({
           </Button>
         )}
       </div>
+
+      {/* Active Filter Pills Indicator */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
+          <span className="text-ch-text-tertiary font-medium">Active Filters:</span>
+          {filter.search && (
+            <span className="inline-flex items-center gap-1 bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-ch-text-primary">
+              Keyword: "{filter.search}"
+              <button
+                type="button"
+                onClick={() => onFilterChange({ ...filter, search: '', page: 1 })}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {filter.partnerType && (
+            <span className="inline-flex items-center gap-1 bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-ch-text-primary">
+              Category: {PARTNER_TYPE_LABELS[filter.partnerType]}
+              <button
+                type="button"
+                onClick={() => onFilterChange({ ...filter, partnerType: undefined, page: 1 })}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {filter.stage && (
+            <span className="inline-flex items-center gap-1 bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-ch-text-primary">
+              Stage: {PARTNER_STAGE_LABELS[filter.stage]}
+              <button
+                type="button"
+                onClick={() => onFilterChange({ ...filter, stage: undefined, page: 1 })}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {filter.assignedMemberId && (
+            <span className="inline-flex items-center gap-1 bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-ch-text-primary">
+              Assignee: {members.find((m) => m.id === filter.assignedMemberId)?.name || 'Selected'}
+              <button
+                type="button"
+                onClick={() => onFilterChange({ ...filter, assignedMemberId: undefined, page: 1 })}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {filter.followUpDue && filter.followUpDue !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-ch-text-primary">
+              Follow-up: {filter.followUpDue}
+              <button
+                type="button"
+                onClick={() => onFilterChange({ ...filter, followUpDue: 'ALL', page: 1 })}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 };

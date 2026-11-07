@@ -27,8 +27,8 @@ export function Dialog({ open, onClose, title, description, children, className,
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal aria-label={title}>
       <div className="fixed inset-0 bg-black/40" onClick={onClose} aria-hidden />
-      <div className={cn('relative z-10 w-full bg-surface rounded-lg border border-ch-border shadow-lg', sizeClasses[size], className)}>
-        <div className="flex items-start justify-between p-4 border-b border-ch-border">
+      <div className={cn('relative z-10 w-full max-h-[calc(100vh-2rem)] flex flex-col bg-surface rounded-lg border border-ch-border shadow-lg', sizeClasses[size], className)}>
+        <div className="flex items-start justify-between p-4 border-b border-ch-border shrink-0">
           <div>
             <h2 className="text-base font-semibold text-ch-text-primary">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-ch-text-secondary">{description}</p>}
@@ -37,7 +37,7 @@ export function Dialog({ open, onClose, title, description, children, className,
             <X size={16} />
           </button>
         </div>
-        <div className="p-4">{children}</div>
+        <div className="p-4 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

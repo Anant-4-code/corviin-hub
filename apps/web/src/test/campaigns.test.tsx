@@ -11,8 +11,11 @@ import {
   TaskPriority,
 } from '@corviin-hub/shared';
 import { CampaignsSummaryStrip } from '../features/campaigns/components/CampaignsSummaryStrip';
+import { CampaignsKpiOverview } from '../features/campaigns/components/CampaignsKpiOverview';
 import { CampaignsTableView } from '../features/campaigns/components/CampaignsTableView';
 import { CampaignsBoardView } from '../features/campaigns/components/CampaignsBoardView';
+import { CampaignsGridView } from '../features/campaigns/components/CampaignsGridView';
+import { CampaignCard } from '../features/campaigns/components/CampaignCard';
 import { CampaignStageStepper } from '../features/campaigns/components/CampaignStageStepper';
 import { StageWorkspace } from '../features/campaigns/components/StageWorkspace';
 import { CampaignAssetsTab } from '../features/campaigns/components/CampaignAssetsTab';
@@ -115,6 +118,61 @@ describe('Feature 08 — Campaigns', () => {
       expect(screen.getByText('2. Scripting')).toBeInTheDocument();
       expect(screen.getByText('3 & 4. Production')).toBeInTheDocument();
       expect(screen.getByText('5. Published')).toBeInTheDocument();
+    });
+  });
+
+  describe('CampaignsKpiOverview', () => {
+    it('renders 6 KPI cards and supports interactive filter selection', () => {
+      const onSelectKpi = vi.fn();
+      render(
+        <CampaignsKpiOverview
+          campaigns={[mockCampaign]}
+          activeFilter="ACTIVE"
+          onSelectKpi={onSelectKpi}
+        />,
+      );
+
+      expect(screen.getByText('Total Campaigns')).toBeInTheDocument();
+      expect(screen.getByText('Active Campaigns')).toBeInTheDocument();
+      expect(screen.getByText('Planning')).toBeInTheDocument();
+      expect(screen.getByText('Completed')).toBeInTheDocument();
+      expect(screen.getByText('On Hold')).toBeInTheDocument();
+      expect(screen.getByText('Upcoming')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Planning'));
+      expect(onSelectKpi).toHaveBeenCalledWith('PLANNING');
+    });
+  });
+
+  describe('CampaignCard & CampaignsGridView', () => {
+    it('renders card with platform, stage, progress bar, and dates', () => {
+      render(
+        <BrowserRouter>
+          <CampaignCard
+            campaign={mockCampaign}
+            getMemberName={() => 'Anant'}
+          />
+        </BrowserRouter>,
+      );
+
+      expect(screen.getByText('Corviin CRM v2.0 Launch Video & Demo Sprint')).toBeInTheDocument();
+      expect(screen.getByText('YOUTUBE')).toBeInTheDocument();
+      expect(screen.getByText('Stage 2: Scripting & Planning')).toBeInTheDocument();
+      expect(screen.getByText('35%')).toBeInTheDocument();
+      expect(screen.getByText('Anant')).toBeInTheDocument();
+    });
+
+    it('renders campaigns grid with multiple items', () => {
+      render(
+        <BrowserRouter>
+          <CampaignsGridView
+            campaigns={[mockCampaign]}
+            getMemberName={() => 'Anant'}
+          />
+        </BrowserRouter>,
+      );
+
+      expect(screen.getByText('Corviin CRM v2.0 Launch Video & Demo Sprint')).toBeInTheDocument();
     });
   });
 
@@ -284,7 +342,7 @@ describe('Feature 08 — Campaigns', () => {
   });
 
   describe('CampaignsPage', () => {
-    it('fetches and displays campaigns in list and board views', async () => {
+    it('fetches and displays campaigns in grid, list, and board views', async () => {
       vi.spyOn(campaignsService, 'fetchCampaigns').mockResolvedValue([mockCampaign]);
 
       const Wrapper = createWrapper();
@@ -305,7 +363,12 @@ describe('Feature 08 — Campaigns', () => {
       expect(screen.getByText('Campaign Title')).toBeInTheDocument();
       expect(screen.getByText('Platform')).toBeInTheDocument();
       expect(screen.getByText('Workspace')).toBeInTheDocument();
+
+      // Switch to Grid View
+      const gridBtn = screen.getByLabelText('Grid View');
+      fireEvent.click(gridBtn);
+
+      expect(screen.getByText('Stage 2: Scripting & Planning')).toBeInTheDocument();
     });
   });
 });
-

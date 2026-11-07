@@ -91,8 +91,8 @@ describe('All Tasks Views and Bulk Operations', () => {
       />,
     );
 
-    expect(screen.getByText('Migrate NestJS database migrations to Prisma')).toBeInTheDocument();
-    expect(screen.getByText('Review Docker container resource limits')).toBeInTheDocument();
+    expect(screen.getAllByText('Migrate NestJS database migrations to Prisma')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Review Docker container resource limits')[0]).toBeInTheDocument();
 
     const selectAllCheckbox = screen.getByLabelText(/select all tasks/i);
     expect(selectAllCheckbox).toBeInTheDocument();
@@ -171,8 +171,8 @@ describe('All Tasks Views and Bulk Operations', () => {
       />,
     );
 
-    expect(screen.getByText('Migrate NestJS database migrations to Prisma')).toBeInTheDocument();
-    expect(screen.getByText('Review Docker container resource limits')).toBeInTheDocument();
+    expect(screen.getAllByText('Migrate NestJS database migrations to Prisma')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Review Docker container resource limits')[0]).toBeInTheDocument();
   });
 
   it('AllTasksPage renders all quick tabs and view switcher modes', () => {

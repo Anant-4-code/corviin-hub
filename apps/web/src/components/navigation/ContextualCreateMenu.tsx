@@ -312,12 +312,12 @@ export function ContextualCreateMenu({ externalOpenType, onExternalClose }: Cont
 
   return (
     <>
-      <div className="relative" ref={menuRef}>
+      <div className="relative shrink-0" ref={menuRef}>
         <button
           onClick={() => setMenuOpen((prev) => !prev)}
           className={cn(
-            'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-control text-xs font-semibold',
-            'bg-ch-primary text-white hover:bg-ch-primary-hover shadow-sm min-h-[36px]',
+            'inline-flex items-center justify-center gap-1 sm:gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-control text-xs font-semibold shrink-0',
+            'bg-ch-primary text-white hover:bg-ch-primary-hover shadow-sm min-h-[32px] sm:min-h-[36px]',
           )}
           aria-expanded={menuOpen}
           aria-haspopup="true"
@@ -325,7 +325,7 @@ export function ContextualCreateMenu({ externalOpenType, onExternalClose }: Cont
         >
           <Plus size={16} />
           <span className="hidden sm:inline">Create</span>
-          <ChevronDown size={14} className="opacity-80" />
+          <ChevronDown size={14} className="hidden sm:inline opacity-80" />
         </button>
 
         {/* Dropdown Menu */}

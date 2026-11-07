@@ -52,7 +52,7 @@ export function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
         <PageHeader title="Dashboard" description="Operational summary and live metrics" />
         <LoadingState message="Loading workspace dashboard..." />
       </div>
@@ -61,7 +61,7 @@ export function DashboardPage() {
 
   if (isError) {
     return (
-      <div className="p-6">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
         <PageHeader title="Dashboard" description="Operational summary and live metrics" />
         <ErrorState
           title="Could not load dashboard metrics"
@@ -102,14 +102,14 @@ export function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => navigate('/tasks/my')}
+              onClick={() => navigate('/app/my-tasks')}
             >
               My Tasks
             </Button>
             <Button
               variant="primary"
               size="sm"
-              onClick={() => navigate('/tasks/all')}
+              onClick={() => navigate('/app/tasks')}
             >
               All Tasks
             </Button>
@@ -122,7 +122,7 @@ export function DashboardPage() {
         {/* Open Tasks */}
         <Card
           className="cursor-pointer hover:border-ch-primary/50"
-          onClick={() => navigate('/tasks/all')}
+          onClick={() => navigate('/app/tasks')}
         >
           <CardBody className="flex items-center justify-between">
             <div className="space-y-1">
@@ -148,7 +148,7 @@ export function DashboardPage() {
           className={`cursor-pointer hover:border-ch-primary/50 ${
             metrics.overdueTasksCount > 0 ? 'border-red-200 dark:border-red-900/50' : ''
           }`}
-          onClick={() => navigate('/tasks/all')}
+          onClick={() => navigate('/app/tasks')}
         >
           <CardBody className="flex items-center justify-between">
             <div className="space-y-1">
@@ -172,7 +172,7 @@ export function DashboardPage() {
         {/* Completed Tasks */}
         <Card
           className="cursor-pointer hover:border-ch-primary/50"
-          onClick={() => navigate('/tasks/all')}
+          onClick={() => navigate('/app/tasks')}
         >
           <CardBody className="flex items-center justify-between">
             <div className="space-y-1">
@@ -196,7 +196,7 @@ export function DashboardPage() {
         {/* Active Campaigns */}
         <Card
           className="cursor-pointer hover:border-ch-primary/50"
-          onClick={() => navigate('/campaigns')}
+          onClick={() => navigate('/app/campaigns')}
         >
           <CardBody className="flex items-center justify-between">
             <div className="space-y-1">
@@ -223,7 +223,7 @@ export function DashboardPage() {
         {/* CRM Leads */}
         <Card
           className="cursor-pointer hover:border-ch-primary/50"
-          onClick={() => navigate('/crm')}
+          onClick={() => navigate('/app/crm')}
         >
           <CardBody className="flex items-center justify-between">
             <div className="space-y-1">
@@ -242,7 +242,7 @@ export function DashboardPage() {
         {/* Upcoming Meetings & Visits */}
         <Card
           className="cursor-pointer hover:border-ch-primary/50"
-          onClick={() => navigate('/meetings')}
+          onClick={() => navigate('/app/meetings')}
         >
           <CardBody className="flex items-center justify-between">
             <div className="space-y-1">
@@ -263,7 +263,7 @@ export function DashboardPage() {
         {/* Stored Assets */}
         <Card
           className="cursor-pointer hover:border-ch-primary/50"
-          onClick={() => navigate('/assets')}
+          onClick={() => navigate('/app/assets')}
         >
           <CardBody className="flex items-center justify-between">
             <div className="space-y-1">
@@ -284,7 +284,7 @@ export function DashboardPage() {
         {/* R2 Storage Used */}
         <Card
           className="cursor-pointer hover:border-ch-primary/50"
-          onClick={() => navigate('/assets')}
+          onClick={() => navigate('/app/assets')}
         >
           <CardBody className="flex items-center justify-between">
             <div className="space-y-1">
@@ -318,7 +318,7 @@ export function DashboardPage() {
           <CardBody className="space-y-3">
             <div
               className="p-3 rounded-lg border border-ch-border hover:bg-surface-muted cursor-pointer flex items-center justify-between"
-              onClick={() => navigate('/calendar/team-tasks')}
+              onClick={() => navigate('/app/calendar/team-tasks')}
             >
               <div>
                 <p className="text-sm font-medium text-text-primary">Team Task Calendar</p>
@@ -331,7 +331,7 @@ export function DashboardPage() {
 
             <div
               className="p-3 rounded-lg border border-ch-border hover:bg-surface-muted cursor-pointer flex items-center justify-between"
-              onClick={() => navigate('/calendar/meetings')}
+              onClick={() => navigate('/app/calendar/meetings-visits')}
             >
               <div>
                 <p className="text-sm font-medium text-text-primary">
@@ -346,7 +346,7 @@ export function DashboardPage() {
 
             <div
               className="p-3 rounded-lg border border-ch-border hover:bg-surface-muted cursor-pointer flex items-center justify-between"
-              onClick={() => navigate('/calendar/content')}
+              onClick={() => navigate('/app/calendar/content-campaigns')}
             >
               <div>
                 <p className="text-sm font-medium text-text-primary">
@@ -374,7 +374,7 @@ export function DashboardPage() {
           <CardBody className="space-y-3">
             <div
               className="p-3 rounded-lg border border-ch-border hover:bg-surface-muted cursor-pointer flex items-center justify-between"
-              onClick={() => navigate('/plans-goals')}
+              onClick={() => navigate('/app/plans-goals')}
             >
               <div>
                 <p className="text-sm font-medium text-text-primary">Plans & Goals</p>
@@ -387,7 +387,7 @@ export function DashboardPage() {
 
             <div
               className="p-3 rounded-lg border border-ch-border hover:bg-surface-muted cursor-pointer flex items-center justify-between"
-              onClick={() => navigate('/team')}
+              onClick={() => navigate('/app/team')}
             >
               <div>
                 <p className="text-sm font-medium text-text-primary">Team Directory</p>
@@ -400,7 +400,7 @@ export function DashboardPage() {
 
             <div
               className="p-3 rounded-lg border border-ch-border hover:bg-surface-muted cursor-pointer flex items-center justify-between"
-              onClick={() => navigate('/notifications')}
+              onClick={() => navigate('/app/notifications')}
             >
               <div>
                 <p className="text-sm font-medium text-text-primary">Activity & Audit Trail</p>

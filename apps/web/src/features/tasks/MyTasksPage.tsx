@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   TaskPriority,
   TaskStatus,
@@ -26,11 +26,16 @@ import {
   addTaskComment,
   addTaskAttachment,
 } from '@/services/tasks';
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Tabs } from '@/components/ui/Tabs';
+import { MyTasksHeader } from './components/MyTasksHeader';
+import {
+  MyTasksSummaryCards,
+  type TaskSummaryFilterKey,
+} from './components/MyTasksSummaryCards';
+import {
+  TaskFilterToolbar,
+  type TaskFilterState,
+  type DateFilterOption,
+} from './components/TaskFilterToolbar';
 import { TaskTableView } from './components/TaskTableView';
 import { TaskKanbanBoard } from './components/TaskKanbanBoard';
 import { TaskDateGroupedView } from './components/TaskDateGroupedView';
@@ -39,38 +44,40 @@ import { CreateTaskDialog } from './components/CreateTaskDialog';
 import { RescheduleTaskDialog } from './components/RescheduleTaskDialog';
 import { BlockTaskDialog } from './components/BlockTaskDialog';
 import { CompleteTaskDialog } from './components/CompleteTaskDialog';
-import {
-  Plus,
-  Search,
-  RotateCcw,
-  List,
-  Columns,
-  Calendar,
-  Filter,
-} from 'lucide-react';
+import { Tabs } from '@/components/ui/Tabs';
+import { isTaskOverdue, getTaskDateBucket } from './utils/task-utils';
+import { List, Columns, Calendar, AlertCircle } from 'lucide-react';
 
+type ViewMode = 'table' | 'board' | 'grouped';
 type TaskTab = 'today' | 'upcoming' | 'overdue' | 'in_progress' | 'completed' | 'all';
-type ViewMode = 'table' | 'grouped' | 'board';
 
 export function MyTasksPage() {
   const queryClient = useQueryClient();
   const selectedWorkspaceId = useAppStore((s) => s.selectedWorkspaceId);
   const selectedProfileId = useAppStore((s) => s.selectedProfileId);
 
-  const { data: profiles } = useProfiles();
-  const { data: workspaces } = useWorkspaces();
+  const { data: profiles = [] } = useProfiles();
+  const { data: workspaces = [] } = useWorkspaces();
 
-  const activeProfile = profiles?.find((p) => p.id === selectedProfileId);
-  const activeWorkspace = workspaces?.find((w) => w.id === selectedWorkspaceId);
+  const activeProfile = profiles.find((p) => p.id === selectedProfileId);
+  const activeWorkspace = workspaces.find((w) => w.id === selectedWorkspaceId);
 
-  // Filters & State
+  // Quick Tabs & View Mode
   const [activeTab, setActiveTab] = useState<TaskTab>('today');
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
 
-  // Modals & Drawer State
+  // Summary KPI Filter (Quick Filter)
+  const [summaryFilter, setSummaryFilter] = useState<TaskSummaryFilterKey | null>(null);
+
+  // Search & Filters State
+  const [filters, setFilters] = useState<TaskFilterState>({
+    search: '',
+    status: 'ALL',
+    priority: 'ALL',
+    dateRange: 'ALL',
+  });
+
+  // Dialogs & Drawers
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -78,51 +85,131 @@ export function MyTasksPage() {
   const [blockTargetTask, setBlockTargetTask] = useState<TaskItem | null>(null);
   const [completeTargetTask, setCompleteTargetTask] = useState<TaskItem | null>(null);
 
-  // Fetch Tasks for Active Workspace & Profile
+  // Fetch all tasks for acting profile in current workspace
   const {
-    data: tasks = [],
+    data: rawTasks = [],
     isLoading,
     isError,
     refetch,
+    isFetching,
   } = useQuery({
-    queryKey: [
-      'tasks',
-      selectedWorkspaceId,
-      selectedProfileId,
-      {
-        mine: true,
-        tab: activeTab,
-        status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
-        priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
-        search: searchQuery.trim() || undefined,
-      },
-    ],
+    queryKey: ['tasks', selectedWorkspaceId, selectedProfileId, { mine: true }],
     queryFn: () =>
       fetchTasks({
         mine: true,
-        tab: activeTab,
-        status: selectedStatus !== 'ALL' ? (selectedStatus as TaskStatus) : undefined,
-        priority: selectedPriority !== 'ALL' ? (selectedPriority as TaskPriority) : undefined,
-        search: searchQuery.trim() || undefined,
       }),
     staleTime: 10_000,
   });
 
+  // Client-side filtering ensures immediate UI responsiveness and consistent KPI calculations
+  const filteredTasks = useMemo(() => {
+    let result = rawTasks;
+
+    // 1. KPI Summary Card Filter
+    if (summaryFilter) {
+      switch (summaryFilter) {
+        case 'all_open':
+          result = result.filter((t) => t.status !== 'COMPLETED' && t.status !== 'CANCELLED');
+          break;
+        case 'in_progress':
+          result = result.filter((t) => t.status === 'IN_PROGRESS');
+          break;
+        case 'due_today':
+          result = result.filter(
+            (t) =>
+              t.status !== 'COMPLETED' &&
+              t.status !== 'CANCELLED' &&
+              getTaskDateBucket(t) === 'Today',
+          );
+          break;
+        case 'overdue':
+          result = result.filter((t) => isTaskOverdue(t));
+          break;
+        case 'completed':
+          result = result.filter((t) => t.status === 'COMPLETED');
+          break;
+        case 'blocked':
+          result = result.filter((t) => t.status === 'BLOCKED');
+          break;
+      }
+    }
+
+    // 2. Search query filter
+    if (filters.search.trim()) {
+      const q = filters.search.toLowerCase().trim();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          (t.description && t.description.toLowerCase().includes(q)) ||
+          (t.linkedRecordTitle && t.linkedRecordTitle.toLowerCase().includes(q)),
+      );
+    }
+
+    // 3. Status filter
+    if (filters.status !== 'ALL') {
+      result = result.filter((t) => t.status === filters.status);
+    }
+
+    // 4. Priority filter
+    if (filters.priority !== 'ALL') {
+      result = result.filter((t) => t.priority === filters.priority);
+    }
+
+    // 5. Date Range filter
+    if (filters.dateRange !== 'ALL') {
+      switch (filters.dateRange) {
+        case 'TODAY':
+          result = result.filter((t) => getTaskDateBucket(t) === 'Today');
+          break;
+        case 'TOMORROW':
+          result = result.filter((t) => getTaskDateBucket(t) === 'Tomorrow');
+          break;
+        case 'OVERDUE':
+          result = result.filter((t) => isTaskOverdue(t));
+          break;
+        case 'THIS_WEEK': {
+          const now = new Date();
+          const nextWeek = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+          result = result.filter((t) => {
+            if (!t.deadline) return false;
+            const d = new Date(t.deadline);
+            return d >= now && d <= nextWeek;
+          });
+          break;
+        }
+        case 'NEXT_WEEK': {
+          const now = new Date();
+          const in7Days = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+          const in14Days = new Date(now.getTime() + 14 * 24 * 3600 * 1000);
+          result = result.filter((t) => {
+            if (!t.deadline) return false;
+            const d = new Date(t.deadline);
+            return d >= in7Days && d <= in14Days;
+          });
+          break;
+        }
+      }
+    }
+
+    return result;
+  }, [rawTasks, summaryFilter, filters]);
+
   // Keep selectedTask in sync when tasks update
   React.useEffect(() => {
     if (selectedTask) {
-      const updated = tasks.find((t) => t.id === selectedTask.id);
+      const updated = rawTasks.find((t) => t.id === selectedTask.id);
       if (updated) {
         setSelectedTask(updated);
       }
     }
-  }, [tasks]);
+  }, [rawTasks]);
 
-  // Mutations
+  // Query Invalidation
   const invalidateTasks = () => {
     queryClient.invalidateQueries({ queryKey: ['tasks'] });
   };
 
+  // Quick Action Handlers
   const handleStartSession = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     await startWorkSession(id);
@@ -156,7 +243,11 @@ export function MyTasksPage() {
     setBlockTargetTask(task);
   };
 
-  const handleConfirmBlock = async (id: string, blockerReason: string, expectedResolutionDate?: string) => {
+  const handleConfirmBlock = async (
+    id: string,
+    blockerReason: string,
+    expectedResolutionDate?: string,
+  ) => {
     await blockTask(id, { blockerReason, expectedResolutionDate });
     invalidateTasks();
   };
@@ -166,7 +257,12 @@ export function MyTasksPage() {
     setRescheduleTargetTask(task);
   };
 
-  const handleConfirmReschedule = async (id: string, newDeadline: string, reason: string, newPlannedStart?: string) => {
+  const handleConfirmReschedule = async (
+    id: string,
+    newDeadline: string,
+    reason: string,
+    newPlannedStart?: string,
+  ) => {
     await rescheduleTask(id, { newDeadline, newPlannedStart, reason });
     invalidateTasks();
   };
@@ -196,15 +292,6 @@ export function MyTasksPage() {
     setIsDetailOpen(true);
   };
 
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setSelectedPriority('ALL');
-    setSelectedStatus('ALL');
-  };
-
-  const hasActiveFilters = searchQuery !== '' || selectedPriority !== 'ALL' || selectedStatus !== 'ALL';
-
-  // Tab definitions
   const tabs = [
     { id: 'today', label: 'Today' },
     { id: 'upcoming', label: 'Upcoming' },
@@ -214,176 +301,193 @@ export function MyTasksPage() {
     { id: 'all', label: 'All Tasks' },
   ];
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId as TaskTab);
+    if (tabId === 'today') {
+      setSummaryFilter('due_today');
+    } else if (tabId === 'upcoming') {
+      setSummaryFilter(null);
+      setFilters((f) => ({ ...f, dateRange: 'THIS_WEEK' }));
+    } else if (tabId === 'overdue') {
+      setSummaryFilter('overdue');
+    } else if (tabId === 'in_progress') {
+      setSummaryFilter('in_progress');
+    } else if (tabId === 'completed') {
+      setSummaryFilter('completed');
+    } else {
+      setSummaryFilter(null);
+      setFilters((f) => ({ ...f, dateRange: 'ALL' }));
+    }
+  };
+
+  const handleResetFilters = () => {
+    setActiveTab('all');
+    setSummaryFilter(null);
+    setFilters({
+      search: '',
+      status: 'ALL',
+      priority: 'ALL',
+      dateRange: 'ALL',
+    });
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <Breadcrumbs
-            items={[
-              { label: 'Home', href: '/app/dashboard' },
-              { label: 'Tasks', href: '/app/tasks' },
-              { label: 'My Tasks' },
-            ]}
-          />
-          <h1 className="text-2xl font-bold text-ch-text-primary tracking-tight mt-1">
-            My Tasks
-          </h1>
-          <p className="text-xs text-ch-text-secondary mt-0.5">
-            Personal operational queue for{' '}
-            <span className="font-semibold text-ch-text-primary">
-              {activeProfile?.displayName || 'Active Profile'}
-            </span>{' '}
-            in{' '}
-            <span className="font-semibold text-ch-text-primary">
-              {activeWorkspace?.name || 'Current Workspace'}
-            </span>
-          </p>
-        </div>
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 pb-16">
+      {/* 1. Page Header */}
+      <MyTasksHeader
+        workspaceName={activeWorkspace?.name}
+        profileName={activeProfile?.displayName}
+        profileInitials={activeProfile?.initials}
+        onRefresh={() => refetch()}
+        isRefreshing={isFetching}
+        onCreateTask={() => setIsCreateOpen(true)}
+      />
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            onClick={() => setIsCreateOpen(true)}
-            className="w-full sm:w-auto"
-          >
-            <Plus size={16} className="mr-1.5" />
-            Create Task
-          </Button>
-        </div>
-      </div>
-
-      {/* Tabs & View Switcher */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-ch-border">
+      {/* Tabs */}
+      <div className="border-b border-ch-border">
         <Tabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(id) => setActiveTab(id as TaskTab)}
+          onTabChange={handleTabChange}
           className="border-b-0"
         />
+      </div>
 
-        {/* View Mode Switcher */}
-        <div className="flex items-center gap-1 self-end md:self-auto pb-2 md:pb-0">
+      {/* 2. Personal Task Summary (6 KPI Cards) */}
+      <MyTasksSummaryCards
+        tasks={rawTasks}
+        activeFilter={summaryFilter}
+        onSelectFilter={(key) => {
+          if (summaryFilter === key) {
+            setSummaryFilter(null); // toggle off
+          } else {
+            setSummaryFilter(key);
+          }
+        }}
+      />
+
+      {/* 3. Search and Filters Toolbar */}
+      <TaskFilterToolbar
+        filters={filters}
+        onFilterChange={setFilters}
+        onReset={handleResetFilters}
+        totalResults={filteredTasks.length}
+      />
+
+      {/* 4. View Switcher Header Strip */}
+      <div className="flex items-center justify-between border-b border-ch-border pb-2 pt-1">
+        <div className="text-xs text-ch-text-secondary font-medium">
+          Showing <span className="font-bold text-ch-text-primary">{filteredTasks.length}</span>{' '}
+          {filteredTasks.length === 1 ? 'task' : 'tasks'}
+          {summaryFilter && (
+            <span className="ml-2 inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-semibold">
+              Filter: {summaryFilter.replace('_', ' ')}
+              <button
+                type="button"
+                onClick={() => setSummaryFilter(null)}
+                className="hover:opacity-75"
+              >
+                ×
+              </button>
+            </span>
+          )}
+        </div>
+
+        {/* View Switcher Buttons */}
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setViewMode('table')}
-            title="Compact Table View"
-            className={`p-1.5 rounded text-xs flex items-center gap-1 border ${
+            className={`p-1.5 rounded text-xs flex items-center gap-1.5 border transition-none ${
               viewMode === 'table'
-                ? 'bg-surface-muted text-ch-text-primary border-ch-border-strong font-semibold'
-                : 'text-ch-text-secondary border-transparent hover:bg-surface-muted'
+                ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 font-semibold'
+                : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-surface-muted'
             }`}
+            title="List Table View"
           >
-            <List size={15} />
-            <span className="hidden sm:inline">Table</span>
+            <List size={14} />
+            <span className="hidden sm:inline">List</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('grouped')}
-            title="Date Grouped View"
-            className={`p-1.5 rounded text-xs flex items-center gap-1 border ${
-              viewMode === 'grouped'
-                ? 'bg-surface-muted text-ch-text-primary border-ch-border-strong font-semibold'
-                : 'text-ch-text-secondary border-transparent hover:bg-surface-muted'
-            }`}
-          >
-            <Calendar size={15} />
-            <span className="hidden sm:inline">By Date</span>
-          </button>
+
           <button
             type="button"
             onClick={() => setViewMode('board')}
-            title="Kanban Board View"
-            className={`p-1.5 rounded text-xs flex items-center gap-1 border ${
+            className={`p-1.5 rounded text-xs flex items-center gap-1.5 border transition-none ${
               viewMode === 'board'
-                ? 'bg-surface-muted text-ch-text-primary border-ch-border-strong font-semibold'
-                : 'text-ch-text-secondary border-transparent hover:bg-surface-muted'
+                ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 font-semibold'
+                : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-surface-muted'
             }`}
+            title="Kanban Board View"
           >
-            <Columns size={15} />
+            <Columns size={14} />
             <span className="hidden sm:inline">Board</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode('grouped')}
+            className={`p-1.5 rounded text-xs flex items-center gap-1.5 border transition-none ${
+              viewMode === 'grouped'
+                ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 font-semibold'
+                : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-surface-muted'
+            }`}
+            title="Date Grouped View"
+          >
+            <Calendar size={14} />
+            <span className="hidden sm:inline">By Date</span>
           </button>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-surface p-3 rounded-lg border border-ch-border flex flex-wrap items-center gap-2.5 text-xs">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ch-text-muted" />
-          <Input
-            placeholder="Search tasks by title or keyword..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-8 text-xs"
-          />
+      {/* Loading Skeleton */}
+      {isLoading && (
+        <div className="space-y-3 py-6">
+          <div className="h-10 bg-surface-muted rounded border border-ch-border animate-pulse" />
+          <div className="h-16 bg-surface-muted rounded border border-ch-border animate-pulse" />
+          <div className="h-16 bg-surface-muted rounded border border-ch-border animate-pulse" />
         </div>
+      )}
 
-        {/* Priority Filter */}
-        <div className="w-36">
-          <Select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="h-8 text-xs"
-            options={[
-              { value: 'ALL', label: 'All Priorities' },
-              { value: TaskPriority.URGENT, label: 'Urgent' },
-              { value: TaskPriority.HIGH, label: 'High' },
-              { value: TaskPriority.MEDIUM, label: 'Medium' },
-              { value: TaskPriority.LOW, label: 'Low' },
-            ]}
-          />
-        </div>
-
-        {/* Status Filter */}
-        <div className="w-36">
-          <Select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="h-8 text-xs"
-            options={[
-              { value: 'ALL', label: 'All Statuses' },
-              { value: TaskStatus.TODO, label: 'To Do' },
-              { value: TaskStatus.IN_PROGRESS, label: 'In Progress' },
-              { value: TaskStatus.ON_HOLD, label: 'On Hold' },
-              { value: TaskStatus.BLOCKED, label: 'Blocked' },
-              { value: TaskStatus.COMPLETED, label: 'Completed' },
-            ]}
-          />
-        </div>
-
-        {/* Reset Filter Button */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetFilters}
-            className="h-8 px-2 text-xs text-ch-text-secondary hover:text-ch-text-primary"
-            title="Reset filters"
+      {/* Error State */}
+      {isError && !isLoading && (
+        <div className="p-6 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-900/60 text-center space-y-2">
+          <AlertCircle size={24} className="mx-auto text-red-600 dark:text-red-400" />
+          <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
+            Unable to load tasks
+          </h3>
+          <p className="text-xs text-red-600 dark:text-red-400">
+            There was an error communicating with the task service. Please try again.
+          </p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-2 px-3 py-1.5 rounded text-xs font-semibold bg-red-600 text-white hover:bg-red-700"
           >
-            <RotateCcw size={13} className="mr-1" />
-            Reset
-          </Button>
-        )}
-      </div>
-
-      {/* Main Task List Views */}
-      {isLoading ? (
-        <div className="text-center py-16 bg-surface rounded-lg border border-ch-border">
-          <p className="text-xs text-ch-text-secondary">Loading operational tasks...</p>
-        </div>
-      ) : isError ? (
-        <div className="text-center py-12 bg-surface rounded-lg border border-danger/30 text-danger text-xs">
-          <p className="font-semibold">Unable to load tasks for this workspace.</p>
-          <Button variant="secondary" size="sm" onClick={() => refetch()} className="mt-3">
             Retry
-          </Button>
+          </button>
         </div>
-      ) : (
+      )}
+
+      {/* 5. Main Task Content (Views) */}
+      {!isLoading && !isError && (
         <>
           {viewMode === 'table' && (
             <TaskTableView
-              tasks={tasks}
+              tasks={filteredTasks}
+              onSelectTask={handleSelectTask}
+              onStart={handleStartSession}
+              onPause={handlePauseSession}
+              onResume={handleResumeSession}
+              onComplete={handleOpenComplete}
+              onReschedule={handleOpenReschedule}
+              onBlock={handleOpenBlock}
+              onCreateTask={() => setIsCreateOpen(true)}
+            />
+          )}
+
+          {viewMode === 'board' && (
+            <TaskKanbanBoard
+              tasks={filteredTasks}
               onSelectTask={handleSelectTask}
               onStart={handleStartSession}
               onPause={handlePauseSession}
@@ -396,20 +500,7 @@ export function MyTasksPage() {
 
           {viewMode === 'grouped' && (
             <TaskDateGroupedView
-              tasks={tasks}
-              onSelectTask={handleSelectTask}
-              onStart={handleStartSession}
-              onPause={handlePauseSession}
-              onResume={handleResumeSession}
-              onComplete={handleOpenComplete}
-              onReschedule={handleOpenReschedule}
-              onBlock={handleOpenBlock}
-            />
-          )}
-
-          {viewMode === 'board' && (
-            <TaskKanbanBoard
-              tasks={tasks}
+              tasks={filteredTasks}
               onSelectTask={handleSelectTask}
               onStart={handleStartSession}
               onPause={handlePauseSession}
@@ -422,7 +513,7 @@ export function MyTasksPage() {
         </>
       )}
 
-      {/* Task Detail Drawer */}
+      {/* 6. Task Detail Drawer */}
       <TaskDetailDrawer
         task={selectedTask}
         open={isDetailOpen}
@@ -430,47 +521,48 @@ export function MyTasksPage() {
         onStartSession={handleStartSession}
         onPauseSession={handlePauseSession}
         onResumeSession={handleResumeSession}
-        onOpenCompleteModal={(task) => setCompleteTargetTask(task)}
-        onOpenBlockModal={(task) => setBlockTargetTask(task)}
-        onOpenRescheduleModal={(task) => setRescheduleTargetTask(task)}
+        onOpenCompleteModal={handleOpenComplete}
+        onOpenBlockModal={handleOpenBlock}
+        onOpenRescheduleModal={handleOpenReschedule}
         onToggleChecklist={handleToggleChecklist}
         onAddChecklist={handleAddChecklist}
         onAddComment={handleAddComment}
         onAddAttachment={handleAddAttachment}
       />
 
-      {/* Create Task Dialog */}
+      {/* 7. Dialogs */}
       <CreateTaskDialog
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        onCreate={async (dto: CreateTaskDto) => {
-          await createTask(dto);
+        onCreateTask={async (dto) => {
+          await createTask({
+            ...dto,
+            assigneeId: selectedProfileId || dto.assigneeId,
+          });
           invalidateTasks();
         }}
+        preselectedAssigneeId={selectedProfileId}
       />
 
-      {/* Reschedule Task Dialog */}
       <RescheduleTaskDialog
         task={rescheduleTargetTask}
-        open={!!rescheduleTargetTask}
+        open={Boolean(rescheduleTargetTask)}
         onClose={() => setRescheduleTargetTask(null)}
-        onReschedule={handleConfirmReschedule}
+        onConfirm={handleConfirmReschedule}
       />
 
-      {/* Block Task Dialog */}
       <BlockTaskDialog
         task={blockTargetTask}
-        open={!!blockTargetTask}
+        open={Boolean(blockTargetTask)}
         onClose={() => setBlockTargetTask(null)}
-        onBlock={handleConfirmBlock}
+        onConfirm={handleConfirmBlock}
       />
 
-      {/* Complete Task Dialog */}
       <CompleteTaskDialog
         task={completeTargetTask}
-        open={!!completeTargetTask}
+        open={Boolean(completeTargetTask)}
         onClose={() => setCompleteTargetTask(null)}
-        onComplete={handleConfirmComplete}
+        onConfirm={handleConfirmComplete}
       />
     </div>
   );

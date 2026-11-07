@@ -32,18 +32,18 @@ export function WorkspaceSwitcher() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative shrink-0 min-w-0 max-w-[115px] xs:max-w-[145px] sm:max-w-[200px]">
       <button
         onClick={() => setOpen((p) => !p)}
         className={cn(
-          'flex items-center gap-2 px-2.5 py-1.5 rounded-control border border-ch-border bg-surface text-sm',
-          'hover:bg-surface-muted text-ch-text-primary max-w-[200px]',
+          'w-full flex items-center gap-1 sm:gap-2 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-control border border-ch-border bg-surface text-sm',
+          'hover:bg-surface-muted text-ch-text-primary',
         )}
         aria-label="Switch workspace"
         aria-expanded={open}
       >
         <Building2 size={14} className="text-accent shrink-0" />
-        <span className="truncate font-medium text-xs">
+        <span className="truncate font-medium text-xs flex-1 text-left">
           {isLoading ? 'Loading…' : (activeWorkspace?.name ?? 'Select workspace')}
         </span>
         <ChevronDown size={12} className="shrink-0 text-ch-text-muted" />

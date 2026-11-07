@@ -34,32 +34,50 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
   members,
   onOpenExisting,
 }) => {
-  // Required Essentials
+  // Section A: Organization Information
   const [companyName, setCompanyName] = useState('');
-  const [contactPerson, setContactPerson] = useState('');
-  const [phone, setPhone] = useState('');
   const [partnerType, setPartnerType] = useState<RealEstatePartnerType>(RealEstatePartnerType.DEVELOPER);
-  const [assignedMemberId, setAssignedMemberId] = useState(members[0]?.id || '');
-
-  // Progressive Disclosure Fields
-  const [showMoreDetails, setShowMoreDetails] = useState(false);
-  const [email, setEmail] = useState('');
-  const [location, setLocation] = useState('');
   const [website, setWebsite] = useState('');
-  const [source, setSource] = useState(PARTNER_LEAD_SOURCES[0]);
+  const [location, setLocation] = useState('');
+  const [city, setCity] = useState('');
+  const [address, setAddress] = useState('');
+  const [orgDescription, setOrgDescription] = useState('');
+
+  // Section B: Contact Information
+  const [contactPerson, setContactPerson] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [alternatePhone, setAlternatePhone] = useState('');
+
+  // Section C: Partnership Information
   const [partnershipInterest, setPartnershipInterest] = useState('');
   const [serviceRequirementsText, setServiceRequirementsText] = useState('');
   const [selectedRequirements, setSelectedRequirements] = useState<string[]>([]);
-  const [notes, setNotes] = useState('');
-
   // Initial Project details
   const [projectName, setProjectName] = useState('');
-  const [projectType, setProjectType] = useState<'RESIDENTIAL' | 'COMMERCIAL' | 'PLOTTED_DEVELOPMENT' | 'LUXURY_VILLAS' | 'MIXED_USE'>('RESIDENTIAL');
+  const [projectType, setProjectType] = useState<
+    'RESIDENTIAL' | 'COMMERCIAL' | 'PLOTTED_DEVELOPMENT' | 'LUXURY_VILLAS' | 'MIXED_USE'
+  >('RESIDENTIAL');
   const [projectLocation, setProjectLocation] = useState('');
   const [projectRera, setProjectRera] = useState('');
   const [projectUnits, setProjectUnits] = useState('');
 
-  // Duplicate Check State
+  // Section D: Lead Information
+  const [source, setSource] = useState(PARTNER_LEAD_SOURCES[0]);
+  const [initialStage, setInitialStage] = useState<RealEstatePartnerStage>(
+    RealEstatePartnerStage.NEW_PARTNER_LEAD,
+  );
+  const [followUpDate, setFollowUpDate] = useState('');
+
+  // Section E: Ownership
+  const [assignedMemberId, setAssignedMemberId] = useState(members[0]?.id || '');
+  const [internalNotes, setInternalNotes] = useState('');
+
+  // Progressive Disclosure
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+
+  // Duplicate Check & Validation State
   const [duplicateMatches, setDuplicateMatches] = useState<PartnerDuplicateMatchResult[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -67,22 +85,30 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setCompanyName('');
-      setContactPerson('');
-      setPhone('');
       setPartnerType(RealEstatePartnerType.DEVELOPER);
-      setAssignedMemberId(members[0]?.id || '');
-      setShowMoreDetails(false);
-      setEmail('');
-      setLocation('');
       setWebsite('');
-      setSource(PARTNER_LEAD_SOURCES[0]);
+      setLocation('');
+      setCity('');
+      setAddress('');
+      setOrgDescription('');
+      setContactPerson('');
+      setDesignation('');
+      setPhone('');
+      setEmail('');
+      setAlternatePhone('');
       setPartnershipInterest('');
       setServiceRequirementsText('');
       setSelectedRequirements([]);
-      setNotes('');
       setProjectName('');
+      setProjectLocation('');
       setProjectRera('');
       setProjectUnits('');
+      setSource(PARTNER_LEAD_SOURCES[0]);
+      setInitialStage(RealEstatePartnerStage.NEW_PARTNER_LEAD);
+      setFollowUpDate('');
+      setAssignedMemberId(members[0]?.id || '');
+      setInternalNotes('');
+      setShowMoreDetails(false);
       setDuplicateMatches([]);
       setErrorMsg('');
       setIsSubmitting(false);
@@ -92,7 +118,11 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
   // Non-blocking duplicate detection debounce
   useEffect(() => {
     const timer = setTimeout(async () => {
-      if ((phone && phone.trim().length >= 8) || (email && email.includes('@')) || (companyName && companyName.trim().length >= 4)) {
+      if (
+        (phone && phone.trim().length >= 8) ||
+        (email && email.includes('@')) ||
+        (companyName && companyName.trim().length >= 4)
+      ) {
         try {
           const results = await checkPartnerDuplicates(workspaceId, {
             phone: phone.trim() || undefined,
@@ -136,6 +166,16 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
 
     const assignedMember = members.find((m) => m.id === assignedMemberId);
 
+    const fullLocation = [location.trim(), city.trim()].filter(Boolean).join(', ');
+    const combinedNotes = [
+      orgDescription.trim(),
+      designation.trim() ? `Designation: ${designation.trim()}` : '',
+      alternatePhone.trim() ? `Alt Phone: ${alternatePhone.trim()}` : '',
+      internalNotes.trim(),
+    ]
+      .filter(Boolean)
+      .join('\n');
+
     const dto: CreatePartnerRecordDto = {
       companyName: companyName.trim(),
       contactPerson: contactPerson.trim() || undefined,
@@ -144,19 +184,19 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
       assignedMemberId,
       assignedMemberName: assignedMember?.name,
       email: email.trim() || undefined,
-      location: location.trim() || undefined,
+      location: fullLocation || undefined,
       website: website.trim() || undefined,
       source: source.trim() || undefined,
       partnershipInterest: partnershipInterest.trim() || undefined,
       serviceRequirementsText: serviceRequirementsText.trim() || undefined,
       marketingRequirements: selectedRequirements,
-      notes: notes.trim() || undefined,
-      initialStage: RealEstatePartnerStage.NEW_PARTNER_LEAD,
+      notes: combinedNotes || undefined,
+      initialStage,
       initialProject: projectName.trim()
         ? {
             name: projectName.trim(),
             projectType,
-            location: projectLocation.trim() || location.trim() || 'Maharashtra',
+            location: projectLocation.trim() || fullLocation || 'Maharashtra',
             reraNumber: projectRera.trim() || undefined,
             totalUnitsOrAcres: projectUnits.trim() || undefined,
             status: 'UPCOMING',
@@ -181,7 +221,7 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
       open={isOpen}
       onClose={onClose}
       title="Create Real Estate Developer / Partner"
-      description="Register a new developer, builder, landowner, or broker partnership lead for Corviin Real Estate."
+      description="Register a new developer, builder, landowner, channel partner, or broker relationship for Corviin Real Estate."
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -221,18 +261,18 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
         )}
 
         {/* ============================================================
-            SECTION 1: REQUIRED ESSENTIALS
+            SECTION A: ORGANIZATION INFORMATION
            ============================================================ */}
         <div className="space-y-3">
           <h4 className="text-xs font-bold text-ch-text-secondary uppercase tracking-wider">
-            Required Essentials
+            A. Organization Information
           </h4>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Company / Partner Name */}
             <div>
               <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                Company / Organization Name <span className="text-rose-500">*</span>
+                Organization / Company Name <span className="text-rose-500">*</span>
               </label>
               <Input
                 placeholder="e.g. Godrej Properties, Skyline Infra"
@@ -243,37 +283,10 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
               />
             </div>
 
-            {/* Contact Person */}
+            {/* Partner Category */}
             <div>
               <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                Key Contact Person
-              </label>
-              <Input
-                placeholder="e.g. Sanjay Mehta (Managing Director)"
-                value={contactPerson}
-                onChange={(e) => setContactPerson(e.target.value)}
-                className="text-xs"
-              />
-            </div>
-
-            {/* Phone */}
-            <div>
-              <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                Phone Number <span className="text-rose-500">*</span>
-              </label>
-              <Input
-                placeholder="e.g. +91 99301 11223"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-                className="text-xs"
-              />
-            </div>
-
-            {/* Partner Type */}
-            <div>
-              <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                Partner Type <span className="text-rose-500">*</span>
+                Partner Category <span className="text-rose-500">*</span>
               </label>
               <Select
                 value={partnerType}
@@ -289,29 +302,101 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
               </Select>
             </div>
 
-            {/* Assigned Member */}
-            <div className="md:col-span-2">
+            {/* Website */}
+            <div>
               <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                Assigned Team Member <span className="text-rose-500">*</span>
+                Website URL
               </label>
-              <Select
-                value={assignedMemberId}
-                onChange={(e) => setAssignedMemberId(e.target.value)}
-                required
+              <Input
+                placeholder="e.g. https://skylinedevelopers.in"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
                 className="text-xs"
-              >
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </Select>
+              />
+            </div>
+
+            {/* Location / Area */}
+            <div>
+              <label className="block text-xs font-medium text-ch-text-primary mb-1">
+                Area / Micro-market
+              </label>
+              <Input
+                placeholder="e.g. Alibaug, Worli, North Pune"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="text-xs"
+              />
             </div>
           </div>
         </div>
 
         {/* ============================================================
-            SECTION 2: PROGRESSIVE DISCLOSURE TOGGLE
+            SECTION B: CONTACT INFORMATION
+           ============================================================ */}
+        <div className="space-y-3 pt-2 border-t border-ch-border">
+          <h4 className="text-xs font-bold text-ch-text-secondary uppercase tracking-wider">
+            B. Key Contact Information
+          </h4>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* Contact Person */}
+            <div>
+              <label className="block text-xs font-medium text-ch-text-primary mb-1">
+                Contact Person Name
+              </label>
+              <Input
+                placeholder="e.g. Sanjay Mehta"
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div>
+              <label className="block text-xs font-medium text-ch-text-primary mb-1">
+                Primary Phone <span className="text-rose-500">*</span>
+              </label>
+              <Input
+                placeholder="e.g. +91 99301 11223"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                className="text-xs"
+              />
+            </div>
+
+            {/* Email Address */}
+            <div>
+              <label className="block text-xs font-medium text-ch-text-primary mb-1">
+                Email Address
+              </label>
+              <Input
+                type="email"
+                placeholder="e.g. sanjay.m@skylinedev.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+
+            {/* Designation / Role */}
+            <div>
+              <label className="block text-xs font-medium text-ch-text-primary mb-1">
+                Designation / Title
+              </label>
+              <Input
+                placeholder="e.g. Managing Director, Sales Head"
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* ============================================================
+            SECTION C & D: PROGRESSIVE DISCLOSURE TOGGLE
            ============================================================ */}
         <div className="pt-2 border-t border-ch-border">
           <button
@@ -319,75 +404,21 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
             onClick={() => setShowMoreDetails(!showMoreDetails)}
             className="text-xs font-semibold text-accent hover:underline flex items-center gap-1"
           >
-            {showMoreDetails ? '▲ Hide additional project & commercial details' : '▼ More details (Location, Projects, Services, Website)'}
+            {showMoreDetails
+              ? '▲ Hide additional project & commercial scope'
+              : '▼ More details (Projects, Services, Lead Source, Ownership Notes)'}
           </button>
         </div>
 
         {showMoreDetails && (
           <div className="space-y-4 pt-2">
-            {/* Location & Website */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                  Location (City / Area)
-                </label>
-                <Input
-                  placeholder="e.g. Alibaug, Worli Mumbai, North Pune"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                  Email Address
-                </label>
-                <Input
-                  type="email"
-                  placeholder="e.g. contact@skylinedev.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                  Website URL
-                </label>
-                <Input
-                  placeholder="e.g. https://skylinedevelopers.in"
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
-                  className="text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                  Lead Source
-                </label>
-                <Select
-                  value={source}
-                  onChange={(e) => setSource(e.target.value)}
-                  className="text-xs"
-                >
-                  {PARTNER_LEAD_SOURCES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-
-            {/* Initial Project Reference */}
-            <div className="bg-ch-bg p-3 rounded-lg border border-ch-border space-y-2">
+            {/* Section C: Partnership Information & Initial Project */}
+            <div className="bg-ch-bg p-3.5 rounded-lg border border-ch-border space-y-3">
               <h5 className="text-xs font-bold text-ch-text-primary">
-                🏢 Initial Project / Development Reference (Optional)
+                C. Initial Project / Development Reference (Optional)
               </h5>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 <div>
                   <label className="block text-[11px] font-medium text-ch-text-secondary mb-1">
                     Project Name
@@ -419,7 +450,7 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-medium text-ch-text-secondary mb-1">
-                    Project Location / Micro-market
+                    Location / Micro-market
                   </label>
                   <Input
                     placeholder="e.g. Awas Road, Alibaug"
@@ -431,7 +462,7 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-medium text-ch-text-secondary mb-1">
-                    RERA Registration Number
+                    RERA Number
                   </label>
                   <Input
                     placeholder="e.g. P52000018902"
@@ -443,79 +474,133 @@ export const CreatePartnerDialog: React.FC<CreatePartnerDialogProps> = ({
 
                 <div className="md:col-span-2">
                   <label className="block text-[11px] font-medium text-ch-text-secondary mb-1">
-                    Total Units or Acreage
+                    Units / Acreage
                   </label>
                   <Input
-                    placeholder="e.g. 45 Private Pool Villas or 15 Acres"
+                    placeholder="e.g. 45 Units or 15 Acres"
                     value={projectUnits}
                     onChange={(e) => setProjectUnits(e.target.value)}
                     className="text-xs"
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Marketing & Service Requirements */}
-            <div>
-              <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                Marketing & Service Requirements
-              </label>
-              <div className="flex flex-wrap gap-1.5 mb-2">
-                {PARTNER_MARKETING_REQUIREMENTS.map((req) => {
-                  const isSelected = selectedRequirements.includes(req);
-                  return (
-                    <button
-                      key={req}
-                      type="button"
-                      onClick={() => toggleRequirement(req)}
-                      className={`px-2 py-1 rounded text-xs border font-medium ${
-                        isSelected
-                          ? 'bg-accent text-white border-accent'
-                          : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-ch-bg'
-                      }`}
-                    >
-                      {isSelected ? '✓ ' : '+ '} {req}
-                    </button>
-                  );
-                })}
+              {/* Marketing Requirements */}
+              <div className="pt-2 border-t border-ch-border">
+                <label className="block text-xs font-medium text-ch-text-primary mb-1">
+                  Marketing & Service Requirements
+                </label>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {PARTNER_MARKETING_REQUIREMENTS.map((req) => {
+                    const isSelected = selectedRequirements.includes(req);
+                    return (
+                      <button
+                        key={req}
+                        type="button"
+                        onClick={() => toggleRequirement(req)}
+                        className={`px-2 py-1 rounded text-xs border font-medium transition-none ${
+                          isSelected
+                            ? 'bg-accent text-white border-accent'
+                            : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-ch-bg'
+                        }`}
+                      >
+                        {isSelected ? '✓ ' : '+ '} {req}
+                      </button>
+                    );
+                  })}
+                </div>
+                <Input
+                  placeholder="Additional commercial requirements or terms..."
+                  value={serviceRequirementsText}
+                  onChange={(e) => setServiceRequirementsText(e.target.value)}
+                  className="text-xs"
+                />
               </div>
-              <Input
-                placeholder="Specific commercial scope or commission notes..."
-                value={serviceRequirementsText}
-                onChange={(e) => setServiceRequirementsText(e.target.value)}
-                className="text-xs"
-              />
-            </div>
 
-            {/* Partnership Interest & Notes */}
-            <div className="space-y-2">
               <div>
                 <label className="block text-xs font-medium text-ch-text-primary mb-1">
                   Partnership Intent / Model
                 </label>
                 <Input
-                  placeholder="e.g. Sole Selling Agency, Digital Mandate, Joint Venture Advisory"
+                  placeholder="e.g. Exclusive Sole Selling Mandate, JV Advisory Retainer"
                   value={partnershipInterest}
                   onChange={(e) => setPartnershipInterest(e.target.value)}
                   className="text-xs"
                 />
               </div>
+            </div>
+
+            {/* Section D: Lead Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-ch-text-primary mb-1">
+                  Lead Acquisition Source
+                </label>
+                <Select
+                  value={source}
+                  onChange={(e) => setSource(e.target.value)}
+                  className="text-xs"
+                >
+                  {PARTNER_LEAD_SOURCES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
               <div>
                 <label className="block text-xs font-medium text-ch-text-primary mb-1">
-                  Initial Background Notes
+                  Initial Stage
                 </label>
-                <Textarea
-                  placeholder="Enter promoter background, meeting remarks, key priorities..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={2}
+                <Select
+                  value={initialStage}
+                  onChange={(e) => setInitialStage(e.target.value as RealEstatePartnerStage)}
                   className="text-xs"
-                />
+                >
+                  <option value={RealEstatePartnerStage.NEW_PARTNER_LEAD}>New Partner Lead</option>
+                  <option value={RealEstatePartnerStage.INITIAL_CONTACT}>Initial Contact</option>
+                  <option value={RealEstatePartnerStage.MEETING_PLANNED}>Meeting Planned</option>
+                </Select>
               </div>
+            </div>
+
+            {/* Section E: Ownership Notes */}
+            <div>
+              <label className="block text-xs font-medium text-ch-text-primary mb-1">
+                Internal Strategy Notes
+              </label>
+              <Textarea
+                placeholder="Enter background notes, promoter history, or relationship strategy..."
+                value={internalNotes}
+                onChange={(e) => setInternalNotes(e.target.value)}
+                rows={2}
+                className="text-xs"
+              />
             </div>
           </div>
         )}
+
+        {/* ============================================================
+            SECTION E: OWNERSHIP / ASSIGNMENT
+           ============================================================ */}
+        <div className="pt-2 border-t border-ch-border">
+          <label className="block text-xs font-medium text-ch-text-primary mb-1">
+            Assigned Team Member <span className="text-rose-500">*</span>
+          </label>
+          <Select
+            value={assignedMemberId}
+            onChange={(e) => setAssignedMemberId(e.target.value)}
+            required
+            className="text-xs"
+          >
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </Select>
+        </div>
 
         {/* Modal Actions */}
         <div className="flex items-center justify-end gap-2 pt-4 border-t border-ch-border">

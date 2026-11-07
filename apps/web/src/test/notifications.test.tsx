@@ -7,6 +7,9 @@ import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 import {
   NotificationCard,
   NotificationFilters,
+  NotificationsSummaryCards,
+  ActivitySummaryCards,
+  ActivityFiltersToolbar,
   AuditTimelineFeed,
   AuditEventDetailDrawer,
 } from '@/features/notifications/components';
@@ -225,7 +228,7 @@ describe('Feature 17: Notifications, Activity & Audit Slice', () => {
       renderWithClient(<NotificationsPage />);
 
       await waitFor(() => {
-        expect(screen.getByText('Notifications & Operational Activity')).toBeInTheDocument();
+        expect(screen.getByText('Notifications & Activity')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /My Notifications/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Workspace Activity & Audit Timeline/i })).toBeInTheDocument();
       });
@@ -237,6 +240,108 @@ describe('Feature 17: Notifications, Activity & Audit Slice', () => {
         expect(screen.getByText('Full Stack Architecture Review')).toBeInTheDocument();
         expect(screen.getByText('Corviin Tech OS Architecture Brief')).toBeInTheDocument();
       });
+    });
+
+    it('filters notifications by search text and status', async () => {
+      vi.spyOn(notifApi, 'fetchNotifications').mockResolvedValue(mockNotifications);
+      vi.spyOn(notifApi, 'fetchUnreadCount').mockResolvedValue({ count: 1 });
+      vi.spyOn(notifApi, 'fetchAuditEvents').mockResolvedValue(mockAuditEvents);
+
+      renderWithClient(<NotificationsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('New Task Assignment')).toBeInTheDocument();
+        expect(screen.getByText('Script Review Requested')).toBeInTheDocument();
+      });
+
+      // Type in search box
+      const searchInput = screen.getByPlaceholderText(/Search notifications by title/i);
+      fireEvent.change(searchInput, { target: { value: 'Script' } });
+
+      // Only "Script Review Requested" should remain
+      expect(screen.queryByText('New Task Assignment')).not.toBeInTheDocument();
+      expect(screen.getByText('Script Review Requested')).toBeInTheDocument();
+    });
+  });
+
+  describe('NotificationsSummaryCards Component', () => {
+    it('calculates counts accurately from data and fires filter callbacks', () => {
+      const onFilterSelect = vi.fn();
+      render(
+        <NotificationsSummaryCards
+          notifications={mockNotifications}
+          onFilterSelect={onFilterSelect}
+        />,
+      );
+
+      expect(screen.getByText('All Notifications')).toBeInTheDocument();
+      expect(screen.getByText('Unread')).toBeInTheDocument();
+      expect(screen.getByText('High Priority')).toBeInTheDocument();
+      expect(screen.getByText('Today')).toBeInTheDocument();
+
+      // Click Unread card
+      fireEvent.click(screen.getByRole('button', { name: /Unread/i }));
+      expect(onFilterSelect).toHaveBeenCalledWith(
+        expect.objectContaining({ unreadOnly: true }),
+      );
+    });
+  });
+
+  describe('ActivitySummaryCards Component', () => {
+    it('calculates audit metrics accurately and handles filter interactions', () => {
+      const onFilterSelect = vi.fn();
+      render(
+        <ActivitySummaryCards
+          events={mockAuditEvents}
+          onFilterSelect={onFilterSelect}
+        />,
+      );
+
+      expect(screen.getByText('Total Activity Events')).toBeInTheDocument();
+      expect(screen.getByText("Today's Events")).toBeInTheDocument();
+      expect(screen.getByText('Active Members')).toBeInTheDocument();
+      expect(screen.getByText('Modules with Activity')).toBeInTheDocument();
+
+      // Click Total Events card
+      fireEvent.click(screen.getByRole('button', { name: /Total Activity Events/i }));
+      expect(onFilterSelect).toHaveBeenCalled();
+    });
+  });
+
+  describe('ActivityFiltersToolbar Component', () => {
+    it('handles query typing, module changing, and sort direction toggle', () => {
+      const onSearchChange = vi.fn();
+      const onEntityTypeFilterChange = vi.fn();
+      const onActionFilterChange = vi.fn();
+      const onSortDirectionChange = vi.fn();
+      const onResetFilters = vi.fn();
+
+      render(
+        <ActivityFiltersToolbar
+          searchQuery=""
+          onSearchChange={onSearchChange}
+          entityTypeFilter="ALL"
+          onEntityTypeFilterChange={onEntityTypeFilterChange}
+          actionFilter="ALL"
+          onActionFilterChange={onActionFilterChange}
+          actorFilter="ALL"
+          onActorFilterChange={vi.fn()}
+          availableActors={['Rohit', 'Utkarsh']}
+          dateRange="ALL"
+          onDateRangeChange={vi.fn()}
+          sortDirection="newest"
+          onSortDirectionChange={onSortDirectionChange}
+          onResetFilters={onResetFilters}
+        />,
+      );
+
+      const searchInput = screen.getByPlaceholderText(/Search activity by entity title/i);
+      fireEvent.change(searchInput, { target: { value: 'Architecture' } });
+      expect(onSearchChange).toHaveBeenCalledWith('Architecture');
+
+      const sortBtn = screen.getByRole('button', { name: /Newest First/i });
+      fireEvent.click(sortBtn);
+      expect(onSortDirectionChange).toHaveBeenCalledWith('oldest');
     });
   });
 });

@@ -1,6 +1,10 @@
 import React from 'react';
 import { MeetingCategory, MeetingStatus } from '@corviin-hub/shared';
-import { MEETING_CATEGORY_CONFIG, MEETING_STATUS_CONFIG, TEAM_MEMBERS } from './meeting-constants';
+import {
+  MEETING_CATEGORY_CONFIG,
+  MEETING_STATUS_CONFIG,
+  TEAM_MEMBERS,
+} from './meeting-constants';
 
 interface MeetingsFilterToolbarProps {
   searchQuery: string;
@@ -15,6 +19,10 @@ interface MeetingsFilterToolbarProps {
   onDateFilterChange: (df: string) => void;
   onResetFilters: () => void;
   onScheduleClick: () => void;
+  viewMode?: 'table' | 'grouped' | 'agenda';
+  onViewModeChange?: (mode: 'table' | 'grouped' | 'agenda') => void;
+  totalCount?: number;
+  filteredCount?: number;
 }
 
 export const MeetingsFilterToolbar: React.FC<MeetingsFilterToolbarProps> = ({
@@ -30,6 +38,10 @@ export const MeetingsFilterToolbar: React.FC<MeetingsFilterToolbarProps> = ({
   onDateFilterChange,
   onResetFilters,
   onScheduleClick,
+  viewMode = 'table',
+  onViewModeChange,
+  totalCount,
+  filteredCount,
 }) => {
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
@@ -39,7 +51,8 @@ export const MeetingsFilterToolbar: React.FC<MeetingsFilterToolbarProps> = ({
     dateFilter !== 'ALL';
 
   return (
-    <div className="bg-surface border border-border rounded-md p-4 mb-4">
+    <div className="bg-surface border border-border rounded-md p-4 mb-4 space-y-3">
+      {/* Top Row: Search, View Mode Switcher, Counter, Primary Action */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         {/* Search Input */}
         <div className="flex-1 min-w-[240px]">
@@ -64,8 +77,58 @@ export const MeetingsFilterToolbar: React.FC<MeetingsFilterToolbarProps> = ({
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="flex items-center gap-2">
+        {/* View Mode Switcher & Actions */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Result Count Indicator */}
+          {typeof filteredCount === 'number' && (
+            <span className="text-xs text-secondary hidden sm:inline-block">
+              Showing <strong>{filteredCount}</strong>
+              {typeof totalCount === 'number' && totalCount !== filteredCount
+                ? ` of ${totalCount}`
+                : ''}{' '}
+              meetings
+            </span>
+          )}
+
+          {/* View Mode Toggle Buttons */}
+          {onViewModeChange && (
+            <div className="flex rounded-md border border-border bg-surface-muted p-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => onViewModeChange('table')}
+                className={`px-3 py-1.5 rounded transition-none font-medium ${
+                  viewMode === 'table'
+                    ? 'bg-surface text-primary font-bold shadow-sm'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                Table View
+              </button>
+              <button
+                type="button"
+                onClick={() => onViewModeChange('grouped')}
+                className={`px-3 py-1.5 rounded transition-none font-medium ${
+                  viewMode === 'grouped'
+                    ? 'bg-surface text-primary font-bold shadow-sm'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                Grouped View
+              </button>
+              <button
+                type="button"
+                onClick={() => onViewModeChange('agenda')}
+                className={`px-3 py-1.5 rounded transition-none font-medium ${
+                  viewMode === 'agenda'
+                    ? 'bg-surface text-primary font-bold shadow-sm'
+                    : 'text-secondary hover:text-primary'
+                }`}
+              >
+                Agenda View
+              </button>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={onScheduleClick}
@@ -80,7 +143,7 @@ export const MeetingsFilterToolbar: React.FC<MeetingsFilterToolbarProps> = ({
       </div>
 
       {/* Filter Selectors Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 mt-3 pt-3 border-t border-border">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 pt-3 border-t border-border">
         {/* Category / Type */}
         <div>
           <label className="block text-[11px] font-medium text-tertiary mb-1">Meeting Type</label>
@@ -154,7 +217,7 @@ export const MeetingsFilterToolbar: React.FC<MeetingsFilterToolbarProps> = ({
             <button
               type="button"
               onClick={onResetFilters}
-              className="w-full py-1.5 px-3 text-xs font-medium text-secondary hover:text-primary bg-surface-muted border border-border rounded-md hover:bg-surface-hover focus:outline-none"
+              className="w-full py-1.5 px-3 text-xs font-medium text-secondary hover:text-primary bg-surface-muted border border-border rounded-md hover:bg-surface-hover focus:outline-none transition-none"
             >
               Reset Filters
             </button>
@@ -163,7 +226,73 @@ export const MeetingsFilterToolbar: React.FC<MeetingsFilterToolbarProps> = ({
           )}
         </div>
       </div>
+
+      {/* Active Filter Pills Bar */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs border-t border-border">
+          <span className="text-tertiary font-medium">Active Filters:</span>
+          {searchQuery && (
+            <span className="inline-flex items-center gap-1 bg-surface-muted border border-border px-2 py-0.5 rounded text-primary">
+              Keyword: "{searchQuery}"
+              <button
+                type="button"
+                onClick={() => onSearchChange('')}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {selectedCategory !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 bg-surface-muted border border-border px-2 py-0.5 rounded text-primary">
+              Type: {MEETING_CATEGORY_CONFIG[selectedCategory as MeetingCategory]?.label || selectedCategory}
+              <button
+                type="button"
+                onClick={() => onCategoryChange('ALL')}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {selectedStatus !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 bg-surface-muted border border-border px-2 py-0.5 rounded text-primary">
+              Status: {MEETING_STATUS_CONFIG[selectedStatus as MeetingStatus]?.label || selectedStatus}
+              <button
+                type="button"
+                onClick={() => onStatusChange('ALL')}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {selectedMember !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 bg-surface-muted border border-border px-2 py-0.5 rounded text-primary">
+              Organiser: {TEAM_MEMBERS.find((m) => m.id === selectedMember)?.name || selectedMember}
+              <button
+                type="button"
+                onClick={() => onMemberChange('ALL')}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+          {dateFilter !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 bg-surface-muted border border-border px-2 py-0.5 rounded text-primary">
+              Date: {dateFilter}
+              <button
+                type="button"
+                onClick={() => onDateFilterChange('ALL')}
+                className="hover:text-rose-500 font-bold ml-0.5"
+              >
+                ×
+              </button>
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 };
-

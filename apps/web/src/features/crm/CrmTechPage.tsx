@@ -133,7 +133,7 @@ export function CrmTechPage() {
   // If in Real Estate workspace, render strict permission/guidance state
   if (!isTechWorkspace) {
     return (
-      <div className="p-4 md:p-6 space-y-4 max-w-4xl mx-auto">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 pb-16">
         <Breadcrumbs
           items={[
             { label: 'CRM Overview', href: '/app/crm' },
@@ -256,7 +256,7 @@ export function CrmTechPage() {
     : null;
 
   return (
-    <div className="space-y-4 p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 pb-16">
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[

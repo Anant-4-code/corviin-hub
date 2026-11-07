@@ -195,7 +195,8 @@ describe('My Tasks Components and Views', () => {
 
     expect(screen.getByRole('heading', { name: 'To Do' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'In Progress' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'On Hold / Blocked' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'On Hold' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Blocked' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Completed' })).toBeInTheDocument();
   });
 

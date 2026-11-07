@@ -26,10 +26,10 @@ export function ThemeSwitcher() {
   }, []);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative shrink-0 hidden xs:block">
       <button
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-1 p-2 rounded-control hover:bg-surface-muted text-ch-text-secondary"
+        className="flex items-center justify-center p-1.5 sm:p-2 rounded-control hover:bg-surface-muted text-ch-text-secondary min-h-[32px] min-w-[32px] sm:min-h-[36px] sm:min-w-[36px] shrink-0"
         aria-label={`Theme: ${current.label}`}
         title="Change theme"
       >

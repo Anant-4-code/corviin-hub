@@ -246,7 +246,7 @@ export function DesignSystemPreviewPage() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-16">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-8 pb-16">
       {/* Page Header */}
       <div className="space-y-2 border-b border-ch-border pb-6">
         <Breadcrumbs items={breadcrumbItems} />

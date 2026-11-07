@@ -148,7 +148,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 pb-16">
       {/* Page Header */}
       <div>
         <h1 className="text-xl font-bold text-primary">Settings & Preferences</h1>

@@ -32,6 +32,7 @@ export class NotificationsService {
       entityId: 'tsk-tech-001',
       actionDestination: '/app/my-tasks',
       isRead: false,
+      priority: 'HIGH',
       createdAt: '2026-11-05T14:30:00.000Z',
     },
     {
@@ -47,6 +48,7 @@ export class NotificationsService {
       entityId: 'cmp-tech-001',
       actionDestination: '/app/campaigns/cmp-tech-001',
       isRead: false,
+      priority: 'MEDIUM',
       createdAt: '2026-11-05T12:15:00.000Z',
     },
     {
@@ -63,16 +65,67 @@ export class NotificationsService {
       actionDestination: '/app/meetings/meet-tech-001',
       isRead: true,
       readAt: '2026-11-05T15:05:00.000Z',
+      priority: 'HIGH',
       createdAt: '2026-11-05T15:00:00.000Z',
+    },
+    {
+      id: 'notif-tech-004',
+      workspaceId: 'ws-tech-0001-0000-000000000001',
+      recipientId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', // Anant
+      actorId: 'system',
+      actorName: 'Automated Task Monitor',
+      type: NotificationType.TASK_DUE_SOON,
+      title: 'Task Due Soon',
+      message: 'Your high-priority task "Document design tokens in architecture TRD" is due tomorrow.',
+      entityType: AuditEntityType.TASK,
+      entityId: 'tsk-tech-002',
+      actionDestination: '/app/my-tasks',
+      isRead: false,
+      priority: 'URGENT',
+      createdAt: '2026-11-05T08:00:00.000Z',
+    },
+    {
+      id: 'notif-tech-005',
+      workspaceId: 'ws-tech-0001-0000-000000000001',
+      recipientId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', // Anant
+      actorId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', // Rohit
+      actorName: 'Rohit',
+      type: NotificationType.CRM_FOLLOW_UP_DUE,
+      title: 'Tech CRM Follow-Up Due',
+      message: 'Follow-up call with NexaCorp IT Leadership regarding Q4 Automation deployment.',
+      entityType: AuditEntityType.CRM,
+      entityId: 'crm-tech-001',
+      actionDestination: '/app/crm/tech',
+      isRead: true,
+      readAt: '2026-11-04T16:00:00.000Z',
+      priority: 'HIGH',
+      createdAt: '2026-11-04T15:30:00.000Z',
+    },
+    {
+      id: 'notif-tech-006',
+      workspaceId: 'ws-tech-0001-0000-000000000001',
+      recipientId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', // Anant
+      actorId: 'c3d4e5f6-a7b8-9012-cdef-123456789012', // Utkarsh
+      actorName: 'Utkarsh',
+      type: NotificationType.APPROVAL_STATUS,
+      title: 'Design System Asset Uploaded',
+      message: 'New token stylesheet "corviin-tokens-v2.json" uploaded and ready for consumption.',
+      entityType: AuditEntityType.ASSET,
+      entityId: 'ast-tech-101',
+      actionDestination: '/app/assets',
+      isRead: true,
+      readAt: '2026-11-03T11:00:00.000Z',
+      priority: 'LOW',
+      createdAt: '2026-11-03T10:45:00.000Z',
     },
 
     // Corviin Real Estate Notifications
     {
       id: 'notif-real-001',
       workspaceId: 'ws-real-0002-0000-000000000002',
-      recipientId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', // Rohit
-      actorId: 'c3d4e5f6-a7b8-9012-cdef-123456789012', // Utkarsh
-      actorName: 'Utkarsh',
+      recipientId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', // Anant
+      actorId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', // Rohit
+      actorName: 'Rohit',
       type: NotificationType.CRM_FOLLOW_UP_DUE,
       title: 'Partner Follow-Up Reminder',
       message: 'Follow-up discussion planned today with Sobha Developers mandate team.',
@@ -80,12 +133,13 @@ export class NotificationsService {
       entityId: 'rec-partner-001',
       actionDestination: '/app/crm/real-estate/partners',
       isRead: false,
+      priority: 'HIGH',
       createdAt: '2026-11-05T10:00:00.000Z',
     },
     {
       id: 'notif-real-002',
       workspaceId: 'ws-real-0002-0000-000000000002',
-      recipientId: 'c3d4e5f6-a7b8-9012-cdef-123456789012', // Utkarsh
+      recipientId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', // Anant
       actorId: 'system',
       actorName: 'CRM Inbound Lead Bot',
       type: NotificationType.TASK_ASSIGNED,
@@ -95,7 +149,25 @@ export class NotificationsService {
       entityId: 'rec-buyer-001',
       actionDestination: '/app/crm/real-estate/buyers',
       isRead: false,
+      priority: 'URGENT',
       createdAt: '2026-11-05T09:45:00.000Z',
+    },
+    {
+      id: 'notif-real-003',
+      workspaceId: 'ws-real-0002-0000-000000000002',
+      recipientId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', // Anant
+      actorId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901', // Rohit
+      actorName: 'Rohit',
+      type: NotificationType.MEETING_RESCHEDULED,
+      title: 'Site Visit Rescheduled',
+      message: 'Devanahalli Land Parcel feasibility visit moved to 2:00 PM due to client transit.',
+      entityType: AuditEntityType.MEETING,
+      entityId: 'meet-real-001',
+      actionDestination: '/app/meetings/meet-real-001',
+      isRead: true,
+      readAt: '2026-11-04T12:00:00.000Z',
+      priority: 'MEDIUM',
+      createdAt: '2026-11-04T11:30:00.000Z',
     },
   ];
 
@@ -147,6 +219,37 @@ export class NotificationsService {
       newValues: { defaultDueDays: 3 },
       correlationId: 'req-corr-103',
     },
+    {
+      id: 'evt-tech-004',
+      workspaceId: 'ws-tech-0001-0000-000000000001',
+      entityType: AuditEntityType.MEETING,
+      entityId: 'mtg-tech-001',
+      entityTitle: 'Weekly Tech Architecture & Zero-Animation Review',
+      action: AuditAction.RESCHEDULED,
+      actorId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      actorName: 'Anant',
+      timestamp: '2026-11-05T09:15:00.000Z',
+      changeSummary: 'Rescheduled meeting start time from 10:00 AM to 11:30 AM.',
+      previousValues: { startTime: '10:00 AM' },
+      newValues: { startTime: '11:30 AM' },
+      reason: 'Team lead travelling for onsite demo',
+      correlationId: 'req-corr-104',
+    },
+    {
+      id: 'evt-tech-005',
+      workspaceId: 'ws-tech-0001-0000-000000000001',
+      entityType: AuditEntityType.GOAL,
+      entityId: 'goal-tech-01',
+      entityTitle: 'Launch Enterprise Automation Suite Q4',
+      action: AuditAction.UPDATED,
+      actorId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+      actorName: 'Rohit',
+      timestamp: '2026-11-04T16:45:00.000Z',
+      changeSummary: 'Updated goal completion milestone progress to 85%.',
+      previousValues: { progress: 70 },
+      newValues: { progress: 85 },
+      correlationId: 'req-corr-105',
+    },
 
     // Corviin Real Estate Audit Events
     {
@@ -177,6 +280,34 @@ export class NotificationsService {
       changeSummary: 'Converted action item "Prepare Title Search Mandate Document" into formal shared task.',
       newValues: { convertedTaskId: 'tsk-real-105' },
       correlationId: 'req-corr-202',
+    },
+    {
+      id: 'evt-real-003',
+      workspaceId: 'ws-real-0002-0000-000000000002',
+      entityType: AuditEntityType.CRM,
+      entityId: 'rec-buyer-001',
+      entityTitle: 'Vikram Rao — 3 BHK Whitefield Luxury Buyer',
+      action: AuditAction.ASSIGNED,
+      actorId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+      actorName: 'Anant',
+      timestamp: '2026-11-05T08:45:00.000Z',
+      changeSummary: 'Assigned high-intent buyer enquiry to Utkarsh with budget ₹2.5 Cr.',
+      newValues: { assignee: 'Utkarsh', priority: 'HIGH' },
+      correlationId: 'req-corr-203',
+    },
+    {
+      id: 'evt-real-004',
+      workspaceId: 'ws-real-0002-0000-000000000002',
+      entityType: AuditEntityType.ASSET,
+      entityId: 'ast-real-002',
+      entityTitle: 'Sobha_Oakshire_Brochure_v1.pdf',
+      action: AuditAction.ASSET_UPLOADED,
+      actorId: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
+      actorName: 'Utkarsh',
+      timestamp: '2026-11-04T15:20:00.000Z',
+      changeSummary: 'Uploaded approved marketing collateral to R2 bucket.',
+      newValues: { fileSize: '4.2 MB', category: 'CONTRACTS_DOCS' },
+      correlationId: 'req-corr-204',
     },
   ];
 

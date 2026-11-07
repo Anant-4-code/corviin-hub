@@ -10,7 +10,7 @@ const calendarTabs = [
 
 export function CalendarPage() {
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4">
       <PageHeader
         title="Calendar"
         description="Workspace schedules across content production, team task assignments, and meetings/site visits."

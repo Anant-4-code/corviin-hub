@@ -26,7 +26,7 @@ export function Drawer({ open, onClose, title, children, side = 'right', width =
       <div className="fixed inset-0 bg-black/40" onClick={onClose} aria-hidden />
       <div
         className={cn(
-          'fixed top-0 bottom-0 z-10 flex flex-col bg-surface border-ch-border shadow-lg',
+          'fixed top-0 bottom-0 z-10 flex flex-col bg-surface border-ch-border shadow-lg max-w-full',
           side === 'right' ? 'right-0 border-l' : 'left-0 border-r',
           width,
         )}

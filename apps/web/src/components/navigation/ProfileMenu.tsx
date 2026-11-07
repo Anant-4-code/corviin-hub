@@ -32,10 +32,10 @@ export function ProfileMenu() {
   if (!activeProfile) return null;
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-2 p-1.5 rounded-control hover:bg-surface-muted"
+        className="flex items-center gap-1.5 p-1 sm:p-1.5 rounded-control hover:bg-surface-muted shrink-0"
         aria-label="Profile menu"
         aria-expanded={open}
       >
@@ -43,7 +43,7 @@ export function ProfileMenu() {
         <span className="hidden sm:block text-sm font-medium text-ch-text-primary max-w-[100px] truncate">
           {activeProfile.displayName}
         </span>
-        <ChevronDown size={12} className="text-ch-text-muted" />
+        <ChevronDown size={12} className="hidden sm:block text-ch-text-muted" />
       </button>
 
       {open && (

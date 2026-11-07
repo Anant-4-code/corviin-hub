@@ -46,6 +46,10 @@ import { AddPartnerProjectDialog } from './components/AddPartnerProjectDialog';
 import { CreatePartnerTaskDialog } from './components/CreatePartnerTaskDialog';
 import { SchedulePartnerMeetingDialog } from './components/SchedulePartnerMeetingDialog';
 import { PartnerRecordDetailDrawer } from './components/PartnerRecordDetailDrawer';
+import { PartnerFollowUpsOverview } from './components/PartnerFollowUpsOverview';
+import { PartnerUpcomingMeetings } from './components/PartnerUpcomingMeetings';
+import { PartnerRecentActivityFeed } from './components/PartnerRecentActivityFeed';
+import { CrmPartnersHeader } from './components/CrmPartnersHeader';
 
 export function CrmPartnersPage() {
   const queryClient = useQueryClient();
@@ -62,7 +66,7 @@ export function CrmPartnersPage() {
 
   const currentProfile = (profiles || []).find((p) => p.id === selectedProfileId);
 
-  // Dynamic Workspace Members
+  // Dynamic Workspace Members from profile store
   const memberOptions = (profiles || []).map((p) => ({
     id: p.id,
     name: p.displayName,
@@ -78,12 +82,14 @@ export function CrmPartnersPage() {
 
   // Drawer & Dialog States
   const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
+  const [partnerForAction, setPartnerForAction] = useState<RealEstatePartnerRecord | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isChangeStageOpen, setIsChangeStageOpen] = useState(false);
   const [isConfirmOrActivateOpen, setIsConfirmOrActivateOpen] = useState(false);
   const [isAddProjectOpen, setIsAddProjectOpen] = useState(false);
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isScheduleMeetingOpen, setIsScheduleMeetingOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Workspace Isolation Check
   const isRealEstateWorkspace =
@@ -130,7 +136,7 @@ export function CrmPartnersPage() {
   // ==========================================
   if (!isRealEstateWorkspace) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-16">
         <Breadcrumbs
           items={[
             { label: 'CRM', href: '/app/crm' },
@@ -160,8 +166,9 @@ export function CrmPartnersPage() {
   };
 
   const handleChangeStage = async (dto: ChangePartnerStageDto) => {
-    if (!selectedPartnerId) return;
-    await changePartnerStage(workspaceId, selectedPartnerId, {
+    const targetId = partnerForAction?.id || selectedPartnerId;
+    if (!targetId) return;
+    await changePartnerStage(workspaceId, targetId, {
       ...dto,
       actorId: currentProfile?.id,
       actorName: currentProfile?.displayName,
@@ -174,8 +181,9 @@ export function CrmPartnersPage() {
   };
 
   const handleConfirmOrActivate = async (dto: ConfirmOrActivatePartnerDto) => {
-    if (!selectedPartnerId) return;
-    await confirmOrActivatePartner(workspaceId, selectedPartnerId, {
+    const targetId = partnerForAction?.id || selectedPartnerId;
+    if (!targetId) return;
+    await confirmOrActivatePartner(workspaceId, targetId, {
       ...dto,
       actorId: currentProfile?.id,
       actorName: currentProfile?.displayName,
@@ -188,8 +196,9 @@ export function CrmPartnersPage() {
   };
 
   const handleAddProject = async (dto: AddPartnerProjectDto) => {
-    if (!selectedPartnerId) return;
-    await addPartnerProject(workspaceId, selectedPartnerId, dto);
+    const targetId = partnerForAction?.id || selectedPartnerId;
+    if (!targetId) return;
+    await addPartnerProject(workspaceId, targetId, dto);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['partner-crm-summary', workspaceId] }),
       queryClient.invalidateQueries({ queryKey: ['partner-crm-records', workspaceId] }),
@@ -198,8 +207,9 @@ export function CrmPartnersPage() {
   };
 
   const handleCreateTask = async (dto: CreatePartnerLinkedTaskDto) => {
-    if (!selectedPartnerId) return;
-    await createPartnerLinkedTask(workspaceId, selectedPartnerId, dto);
+    const targetId = partnerForAction?.id || selectedPartnerId;
+    if (!targetId) return;
+    await createPartnerLinkedTask(workspaceId, targetId, dto);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['tasks'] }),
       refetchSelectedPartner(),
@@ -207,8 +217,9 @@ export function CrmPartnersPage() {
   };
 
   const handleScheduleMeeting = async (dto: SchedulePartnerMeetingDto) => {
-    if (!selectedPartnerId) return;
-    await schedulePartnerMeeting(workspaceId, selectedPartnerId, dto);
+    const targetId = partnerForAction?.id || selectedPartnerId;
+    if (!targetId) return;
+    await schedulePartnerMeeting(workspaceId, targetId, dto);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['meetings'] }),
       refetchSelectedPartner(),
@@ -235,33 +246,71 @@ export function CrmPartnersPage() {
     });
   };
 
+  const handleBoardQuickAdvance = async (recordId: string, stage: RealEstatePartnerStage) => {
+    await changePartnerStage(workspaceId, recordId, {
+      stage,
+      notes: `Quick advanced from board view to ${stage}`,
+      actorId: currentProfile?.id,
+      actorName: currentProfile?.displayName,
+    });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['partner-crm-summary', workspaceId] }),
+      queryClient.invalidateQueries({ queryKey: ['partner-crm-records', workspaceId] }),
+    ]);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refetchSummary(), refetchRecords()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleKpiFilterSelect = (partialFilter: Partial<PartnerCrmFilterDto>) => {
+    setFilters((prev) => ({
+      ...prev,
+      ...partialFilter,
+      page: 1,
+    }));
+  };
+
+  const activeModalPartner = partnerForAction || selectedPartner;
+
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-16">
       {/* Breadcrumbs */}
       <Breadcrumbs
         items={[
           { label: 'CRM Overview', href: '/app/crm' },
-          { label: 'Real Estate Developers & Partners' },
+          { label: 'Real Estate Developers & Partners CRM' },
         ]}
       />
 
-      {/* Page Header */}
-      <PageHeader
-        title="Real Estate Developers & Partners CRM"
-        description="Manage developer, builder, landowner, and channel partner pipelines from initial prospecting through active mandates."
+      {/* Top Header */}
+      <CrmPartnersHeader
+        onOpenCreate={() => setIsCreateOpen(true)}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
       />
 
-      {/* Summary KPI Strip */}
+      {/* Summary KPI Strip & Clickable Filter Cards */}
       {summaryError ? (
         <ErrorState
           message="Failed to load partner summary metrics"
           onRetry={() => refetchSummary()}
         />
       ) : (
-        <PartnerSummaryStrip summary={summary} isLoading={isSummaryLoading} />
+        <PartnerSummaryStrip
+          summary={summary}
+          isLoading={isSummaryLoading}
+          activeFilter={filters}
+          onFilterSelect={handleKpiFilterSelect}
+        />
       )}
 
-      {/* Filter Toolbar */}
+      {/* Search & Multi-Filter Toolbar */}
       <PartnerFilterToolbar
         filter={filters}
         onFilterChange={setFilters}
@@ -269,9 +318,11 @@ export function CrmPartnersPage() {
         onViewModeChange={setViewMode}
         onOpenCreate={() => setIsCreateOpen(true)}
         members={memberOptions}
+        totalCount={summary?.totalPartners}
+        filteredCount={recordsResponse?.total}
       />
 
-      {/* Main View: Table or Board */}
+      {/* Main Workspace: Table or Board */}
       {recordsError ? (
         <ErrorState
           message="Failed to load partner directory records"
@@ -284,6 +335,14 @@ export function CrmPartnersPage() {
           <PartnerRecordsTableView
             records={recordsResponse?.items || []}
             onSelectRecord={(r) => setSelectedPartnerId(r.id)}
+            onOpenChangeStage={(r) => {
+              setPartnerForAction(r);
+              setIsChangeStageOpen(true);
+            }}
+            onOpenScheduleMeeting={(r) => {
+              setPartnerForAction(r);
+              setIsScheduleMeetingOpen(true);
+            }}
             isLoading={isRecordsLoading}
           />
           {recordsResponse && recordsResponse.totalPages > 1 && (
@@ -299,9 +358,31 @@ export function CrmPartnersPage() {
         <PartnerRecordsBoardView
           records={recordsResponse?.items || []}
           onSelectRecord={(r) => setSelectedPartnerId(r.id)}
+          onQuickAdvanceStage={handleBoardQuickAdvance}
           isLoading={isRecordsLoading}
         />
       )}
+
+      {/* Operational Sections: Follow-ups, Upcoming Meetings, Activity Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2">
+        <PartnerFollowUpsOverview
+          records={recordsResponse?.items || []}
+          onSelectPartner={(pId) => setSelectedPartnerId(pId)}
+        />
+        <PartnerUpcomingMeetings
+          records={recordsResponse?.items || []}
+          onSelectPartner={(pId) => setSelectedPartnerId(pId)}
+          onOpenScheduleMeeting={(p) => {
+            setPartnerForAction(p);
+            setIsScheduleMeetingOpen(true);
+          }}
+        />
+      </div>
+
+      <PartnerRecentActivityFeed
+        records={recordsResponse?.items || []}
+        onSelectPartner={(pId) => setSelectedPartnerId(pId)}
+      />
 
       {/* ============================================================
           DIALOGS & DRAWERS
@@ -317,10 +398,13 @@ export function CrmPartnersPage() {
         onOpenExisting={(existingId) => setSelectedPartnerId(existingId)}
       />
 
-      {/* Partner Detail Drawer */}
+      {/* Partner Detail Drawer (8 Tabs) */}
       <PartnerRecordDetailDrawer
         isOpen={Boolean(selectedPartnerId)}
-        onClose={() => setSelectedPartnerId(null)}
+        onClose={() => {
+          setSelectedPartnerId(null);
+          setPartnerForAction(null);
+        }}
         partner={selectedPartner || null}
         onOpenChangeStage={() => setIsChangeStageOpen(true)}
         onOpenConfirmOrActivate={() => setIsConfirmOrActivateOpen(true)}
@@ -332,25 +416,31 @@ export function CrmPartnersPage() {
       />
 
       {/* Change Stage Dialog */}
-      {selectedPartner && (
+      {activeModalPartner && (
         <ChangePartnerStageDialog
           isOpen={isChangeStageOpen}
-          onClose={() => setIsChangeStageOpen(false)}
-          currentStage={selectedPartner.stage}
+          onClose={() => {
+            setIsChangeStageOpen(false);
+            setPartnerForAction(null);
+          }}
+          currentStage={activeModalPartner.stage}
           onSubmit={handleChangeStage}
-          partnerName={selectedPartner.companyName}
+          partnerName={activeModalPartner.companyName}
         />
       )}
 
       {/* Confirm / Activate Dialog */}
-      {selectedPartner && (
+      {activeModalPartner && (
         <ConfirmOrActivatePartnerDialog
           isOpen={isConfirmOrActivateOpen}
-          onClose={() => setIsConfirmOrActivateOpen(false)}
+          onClose={() => {
+            setIsConfirmOrActivateOpen(false);
+            setPartnerForAction(null);
+          }}
           onSubmit={handleConfirmOrActivate}
-          partnerName={selectedPartner.companyName}
+          partnerName={activeModalPartner.companyName}
           defaultMode={
-            selectedPartner.stage === RealEstatePartnerStage.PARTNERSHIP_CONFIRMED
+            activeModalPartner.stage === RealEstatePartnerStage.PARTNERSHIP_CONFIRMED
               ? 'ACTIVATE'
               : 'CONFIRM'
           }
@@ -358,38 +448,47 @@ export function CrmPartnersPage() {
       )}
 
       {/* Add Project Dialog */}
-      {selectedPartner && (
+      {activeModalPartner && (
         <AddPartnerProjectDialog
           isOpen={isAddProjectOpen}
-          onClose={() => setIsAddProjectOpen(false)}
+          onClose={() => {
+            setIsAddProjectOpen(false);
+            setPartnerForAction(null);
+          }}
           onSubmit={handleAddProject}
-          partnerName={selectedPartner.companyName}
-          defaultLocation={selectedPartner.location}
+          partnerName={activeModalPartner.companyName}
+          defaultLocation={activeModalPartner.location}
         />
       )}
 
       {/* Create Linked Task Dialog */}
-      {selectedPartner && (
+      {activeModalPartner && (
         <CreatePartnerTaskDialog
           isOpen={isCreateTaskOpen}
-          onClose={() => setIsCreateTaskOpen(false)}
+          onClose={() => {
+            setIsCreateTaskOpen(false);
+            setPartnerForAction(null);
+          }}
           onSubmit={handleCreateTask}
-          partnerName={selectedPartner.companyName}
+          partnerName={activeModalPartner.companyName}
           members={memberOptions}
-          defaultAssigneeId={selectedPartner.assignedMemberId}
+          defaultAssigneeId={activeModalPartner.assignedMemberId}
         />
       )}
 
       {/* Schedule Meeting Dialog */}
-      {selectedPartner && (
+      {activeModalPartner && (
         <SchedulePartnerMeetingDialog
           isOpen={isScheduleMeetingOpen}
-          onClose={() => setIsScheduleMeetingOpen(false)}
+          onClose={() => {
+            setIsScheduleMeetingOpen(false);
+            setPartnerForAction(null);
+          }}
           onSubmit={handleScheduleMeeting}
-          partnerName={selectedPartner.companyName}
-          projects={selectedPartner.projects || []}
+          partnerName={activeModalPartner.companyName}
+          projects={activeModalPartner.projects || []}
           members={memberOptions}
-          defaultHostId={selectedPartner.assignedMemberId}
+          defaultHostId={activeModalPartner.assignedMemberId}
         />
       )}
     </div>

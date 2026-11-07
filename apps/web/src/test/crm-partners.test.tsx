@@ -378,4 +378,104 @@ describe('Real Estate Developers & Partners CRM (Feature 12)', () => {
       });
     });
   });
+
+  describe('Interactive KPI Card Filtering', () => {
+    it('calls onFilterSelect when clicking KPI cards', () => {
+      const handleFilterSelect = vi.fn();
+      render(
+        <PartnerSummaryStrip
+          summary={mockSummary}
+          onFilterSelect={handleFilterSelect}
+        />,
+      );
+
+      // Click "Active Partners" KPI
+      const activeCard = screen.getByText('Active Partners');
+      fireEvent.click(activeCard);
+      expect(handleFilterSelect).toHaveBeenCalledWith({
+        stage: RealEstatePartnerStage.ACTIVE_PARTNER,
+      });
+
+      // Click "Confirmed" KPI
+      const confirmedCard = screen.getByText('Confirmed');
+      fireEvent.click(confirmedCard);
+      expect(handleFilterSelect).toHaveBeenCalledWith({
+        stage: RealEstatePartnerStage.PARTNERSHIP_CONFIRMED,
+      });
+
+      // Click "Overdue Follow-ups" KPI
+      const overdueCard = screen.getByText('Overdue Follow-ups');
+      fireEvent.click(overdueCard);
+      expect(handleFilterSelect).toHaveBeenCalledWith({
+        followUpDue: 'OVERDUE',
+      });
+    });
+  });
+
+  describe('Partner Detail Experience 8 Tabs', () => {
+    it('navigates across Organization, Contacts, Projects, Meetings, Follow-ups, Documents, and Activity tabs', () => {
+      render(
+        <PartnerRecordDetailDrawer
+          isOpen={true}
+          onClose={vi.fn()}
+          partner={mockPartner}
+          onOpenChangeStage={vi.fn()}
+          onOpenConfirmOrActivate={vi.fn()}
+          onOpenAddProject={vi.fn()}
+          onOpenCreateTask={vi.fn()}
+          onOpenScheduleMeeting={vi.fn()}
+        />,
+      );
+
+      // Tab 2: Organization
+      fireEvent.click(screen.getByRole('button', { name: /Organization/i }));
+      expect(screen.getByText(/Organization Profile/i)).toBeInTheDocument();
+      expect(screen.getByText('https://skylinedevelopers.in')).toBeInTheDocument();
+
+      // Tab 3: Contacts
+      fireEvent.click(screen.getByText('Contacts'));
+      expect(screen.getByText(/Primary Relationship Contact/i)).toBeInTheDocument();
+
+      // Tab 4: Projects
+      fireEvent.click(screen.getByText(/Projects \(2\)/i));
+      expect(screen.getByText('Emerald Heights Luxury Villas')).toBeInTheDocument();
+
+      // Tab 5: Meetings
+      fireEvent.click(screen.getByText('Meetings'));
+      expect(screen.getByText(/Prelinked Meetings Workflow/i)).toBeInTheDocument();
+
+      // Tab 6: Follow-ups
+      fireEvent.click(screen.getByText('Follow-ups'));
+      expect(screen.getByText(/Linked Task Engine Integration/i)).toBeInTheDocument();
+
+      // Tab 7: Documents
+      fireEvent.click(screen.getByText(/Documents \(0\)/i));
+      expect(screen.getByText(/No documents uploaded yet/i)).toBeInTheDocument();
+
+      // Tab 8: Activity
+      fireEvent.click(screen.getByText(/Stage History \(2\)/i));
+      expect(screen.getByText('Negotiating marketing budget sharing')).toBeInTheDocument();
+    });
+  });
+
+  describe('Board View Quick Stage Advance', () => {
+    it('triggers onQuickAdvanceStage callback when advance button is clicked', () => {
+      const handleAdvance = vi.fn();
+      render(
+        <PartnerRecordsBoardView
+          records={[mockPartner]}
+          onSelectRecord={vi.fn()}
+          onQuickAdvanceStage={handleAdvance}
+        />,
+      );
+
+      // Follow-up / Negotiation stage has next stage: Partnership Confirmed
+      const advanceBtn = screen.getByRole('button', { name: /Advance/i });
+      fireEvent.click(advanceBtn);
+      expect(handleAdvance).toHaveBeenCalledWith(
+        'partner-re-001',
+        RealEstatePartnerStage.PARTNERSHIP_CONFIRMED,
+      );
+    });
+  });
 });

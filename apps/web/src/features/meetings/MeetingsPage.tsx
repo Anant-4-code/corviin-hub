@@ -3,9 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/lib/store';
 import { fetchMeetings, createMeeting, rescheduleMeeting } from '@/services/meetings';
 import type { MeetingItem, CreateMeetingDto, RescheduleMeetingDto } from '@corviin-hub/shared';
+import { MeetingsHeader } from './components/MeetingsHeader';
 import { MeetingsSummaryStrip } from './components/MeetingsSummaryStrip';
 import { MeetingsFilterToolbar } from './components/MeetingsFilterToolbar';
 import { MeetingsTableView } from './components/MeetingsTableView';
+import { MeetingsGroupedView } from './components/MeetingsGroupedView';
+import { MeetingsAgendaView } from './components/MeetingsAgendaView';
+import { UpcomingMeetingsPanel } from './components/UpcomingMeetingsPanel';
+import { MeetingActionItemsRegister } from './components/MeetingActionItemsRegister';
+import { MeetingRecentActivityFeed } from './components/MeetingRecentActivityFeed';
 import { ScheduleMeetingDialog } from './components/ScheduleMeetingDialog';
 import { RescheduleMeetingModal } from './components/RescheduleMeetingModal';
 
@@ -19,6 +25,7 @@ export const MeetingsPage: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedMember, setSelectedMember] = useState('ALL');
   const [dateFilter, setDateFilter] = useState('ALL');
+  const [viewMode, setViewMode] = useState<'table' | 'grouped' | 'agenda'>('table');
 
   // Modals state
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
@@ -28,6 +35,7 @@ export const MeetingsPage: React.FC = () => {
   const {
     data: meetings = [],
     isLoading,
+    isFetching,
     error,
   } = useQuery({
     queryKey: ['meetings', selectedWorkspaceId],
@@ -45,6 +53,7 @@ export const MeetingsPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meetings', selectedWorkspaceId] });
+      setIsScheduleOpen(false);
     },
   });
 
@@ -56,6 +65,7 @@ export const MeetingsPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meetings', selectedWorkspaceId] });
+      setReschedulingMeeting(null);
     },
   });
 
@@ -120,22 +130,37 @@ export const MeetingsPage: React.FC = () => {
     setDateFilter('ALL');
   };
 
+  const handleFilterSelect = (filter: { status?: string; dateFilter?: string }) => {
+    if (filter.status !== undefined) setSelectedStatus(filter.status);
+    if (filter.dateFilter !== undefined) setDateFilter(filter.dateFilter);
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-primary">Meetings & Sessions</h1>
-          <p className="text-xs text-secondary mt-0.5">
-            Operational meeting records with agendas, preparation, discussion minutes, decisions, and convertible action items.
-          </p>
-        </div>
-      </div>
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-16">
+      {/* 1. Page Header */}
+      <MeetingsHeader
+        onScheduleClick={() => setIsScheduleOpen(true)}
+        onDateFilterSelect={setDateFilter}
+        activeDateFilter={dateFilter}
+        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['meetings', selectedWorkspaceId] })}
+        isRefreshing={isFetching}
+      />
 
-      {/* Summary Strip */}
-      <MeetingsSummaryStrip meetings={meetings} />
+      {/* 2. Operational 6-KPI Summary Strip */}
+      <MeetingsSummaryStrip
+        meetings={meetings}
+        activeStatus={selectedStatus}
+        activeDateFilter={dateFilter}
+        onFilterSelect={handleFilterSelect}
+      />
 
-      {/* Filter Toolbar */}
+      {/* 3. Upcoming Priority Sessions Panel */}
+      <UpcomingMeetingsPanel
+        meetings={filteredMeetings}
+        onRescheduleClick={(m) => setReschedulingMeeting(m)}
+      />
+
+      {/* 4. Filter & Search Toolbar */}
       <MeetingsFilterToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -149,9 +174,13 @@ export const MeetingsPage: React.FC = () => {
         onDateFilterChange={setDateFilter}
         onResetFilters={handleResetFilters}
         onScheduleClick={() => setIsScheduleOpen(true)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        totalCount={meetings.length}
+        filteredCount={filteredMeetings.length}
       />
 
-      {/* Table & Mobile Cards */}
+      {/* 5. Main Meetings Content (Table / Grouped / Agenda) */}
       {isLoading ? (
         <div className="p-12 text-center text-sm text-secondary bg-surface border border-border rounded-md">
           Loading workspace meetings...
@@ -161,13 +190,42 @@ export const MeetingsPage: React.FC = () => {
           Failed to load meetings. Please check connection.
         </div>
       ) : (
-        <MeetingsTableView
-          meetings={filteredMeetings}
-          onRescheduleClick={(m) => setReschedulingMeeting(m)}
-        />
+        <div>
+          {viewMode === 'table' && (
+            <MeetingsTableView
+              meetings={filteredMeetings}
+              onRescheduleClick={(m) => setReschedulingMeeting(m)}
+            />
+          )}
+
+          {viewMode === 'grouped' && (
+            <MeetingsGroupedView
+              meetings={filteredMeetings}
+              onRescheduleClick={(m) => setReschedulingMeeting(m)}
+            />
+          )}
+
+          {viewMode === 'agenda' && (
+            <MeetingsAgendaView
+              meetings={filteredMeetings}
+              onRescheduleClick={(m) => setReschedulingMeeting(m)}
+            />
+          )}
+        </div>
       )}
 
-      {/* Dialogs */}
+      {/* 6. Operational Panels: Action Items Register & Activity Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+        <MeetingActionItemsRegister
+          meetings={filteredMeetings}
+          workspaceId={selectedWorkspaceId}
+        />
+        <MeetingRecentActivityFeed
+          meetings={filteredMeetings}
+        />
+      </div>
+
+      {/* 7. Dialogs */}
       {selectedWorkspaceId && (
         <ScheduleMeetingDialog
           isOpen={isScheduleOpen}

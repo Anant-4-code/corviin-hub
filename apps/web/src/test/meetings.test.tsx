@@ -7,6 +7,11 @@ import type { MeetingItem } from '@corviin-hub/shared';
 import { MeetingsSummaryStrip } from '../features/meetings/components/MeetingsSummaryStrip';
 import { MeetingsFilterToolbar } from '../features/meetings/components/MeetingsFilterToolbar';
 import { MeetingsTableView } from '../features/meetings/components/MeetingsTableView';
+import { MeetingsGroupedView } from '../features/meetings/components/MeetingsGroupedView';
+import { MeetingsAgendaView } from '../features/meetings/components/MeetingsAgendaView';
+import { UpcomingMeetingsPanel } from '../features/meetings/components/UpcomingMeetingsPanel';
+import { MeetingActionItemsRegister } from '../features/meetings/components/MeetingActionItemsRegister';
+import { MeetingRecentActivityFeed } from '../features/meetings/components/MeetingRecentActivityFeed';
 import { ScheduleMeetingDialog } from '../features/meetings/components/ScheduleMeetingDialog';
 import { RescheduleMeetingModal } from '../features/meetings/components/RescheduleMeetingModal';
 import { AddActionItemDialog } from '../features/meetings/components/AddActionItemDialog';
@@ -406,6 +411,91 @@ describe('Feature 14: Meetings Management Slice', () => {
       // After filter, only NexaCorp meeting is visible
       expect(screen.queryByText('Weekly Tech Architecture & Zero-Animation Review')).not.toBeInTheDocument();
       expect(screen.getAllByText('Enterprise Client Tech Discovery Call — NexaCorp').length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('switches between Table, Grouped, and Agenda view modes', async () => {
+      vi.spyOn(meetingsApi, 'fetchMeetings').mockResolvedValue(mockMeetings);
+
+      renderWithClient(<MeetingsPage />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Meetings & Sessions')).toBeInTheDocument();
+      });
+
+      // Switch to Grouped View
+      const groupedBtn = screen.getByRole('button', { name: /Grouped View/i });
+      fireEvent.click(groupedBtn);
+
+      expect(screen.getByText('Group Sessions By:')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Status' })).toBeInTheDocument();
+
+      // Switch to Agenda View
+      const agendaBtn = screen.getByRole('button', { name: /Agenda View/i });
+      fireEvent.click(agendaBtn);
+
+      expect(screen.getAllByText(/TODAY/i).length).toBeGreaterThanOrEqual(1);
+
+      // Switch back to Table View
+      const tableBtn = screen.getByRole('button', { name: /Table View/i });
+      fireEvent.click(tableBtn);
+
+      expect(screen.getByText('Related Lead/Record')).toBeInTheDocument();
+    });
+  });
+
+  describe('UpcomingMeetingsPanel', () => {
+    it('renders upcoming priority sessions with direct Join and Call CTAs', () => {
+      renderWithClient(<UpcomingMeetingsPanel meetings={mockMeetings} onRescheduleClick={vi.fn()} />);
+
+      expect(screen.getByText(/Upcoming Sessions & Active Pipeline/i)).toBeInTheDocument();
+      expect(screen.getByText(/Priority Sessions/i)).toBeInTheDocument();
+      expect(screen.getAllByText('Weekly Tech Architecture & Zero-Animation Review').length).toBeGreaterThanOrEqual(1);
+
+      const joinLink = screen.getByText('Join');
+      expect(joinLink).toHaveAttribute('href', 'https://meet.google.com/crv-tech-arch');
+
+      const callLinks = screen.getAllByText('Call');
+      expect(callLinks.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('MeetingActionItemsRegister', () => {
+    it('renders action items table and triggers task conversion', async () => {
+      const convertSpy = vi.spyOn(meetingsApi, 'convertMeetingActionItem').mockResolvedValue({
+        actionItem: { ...mockMeetings[0].actionItems![0], status: 'CONVERTED' },
+        task: { id: 'tsk-conv-2', title: 'Document design tokens' } as any,
+      });
+
+      renderWithClient(
+        <MeetingActionItemsRegister
+          meetings={mockMeetings}
+          workspaceId="ws-tech-0001-0000-000000000001"
+        />,
+      );
+
+      expect(screen.getByText(/Workspace Action Items Register/i)).toBeInTheDocument();
+      expect(screen.getAllByText('Document design tokens in architecture TRD').length).toBeGreaterThanOrEqual(1);
+
+      const convertBtn = screen.getAllByRole('button', { name: /Convert to Task/i })[0];
+      fireEvent.click(convertBtn);
+
+      await waitFor(() => {
+        expect(convertSpy).toHaveBeenCalledWith(
+          'ws-tech-0001-0000-000000000001',
+          'mtg-tech-001',
+          expect.objectContaining({ actionItemId: 'act-1' }),
+        );
+      });
+    });
+  });
+
+  describe('MeetingRecentActivityFeed', () => {
+    it('renders chronological meeting lifecycle events', () => {
+      renderWithClient(<MeetingRecentActivityFeed meetings={mockMeetings} />);
+
+      expect(screen.getByText(/Recent Meeting Activity & Audit Feed/i)).toBeInTheDocument();
+      expect(screen.getByText(/Meeting created/i)).toBeInTheDocument();
+      expect(screen.getByText(/Formal Decision Recorded/i)).toBeInTheDocument();
     });
   });
 });

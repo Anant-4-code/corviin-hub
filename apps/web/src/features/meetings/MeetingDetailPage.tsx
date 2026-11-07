@@ -141,25 +141,29 @@ export const MeetingDetailPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-sm text-secondary">
-        Loading operational meeting record...
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4">
+        <div className="p-8 text-center text-sm text-secondary">
+          Loading operational meeting record...
+        </div>
       </div>
     );
   }
 
   if (error || !meeting) {
     return (
-      <div className="p-8 text-center">
-        <h2 className="text-base font-semibold text-primary">Meeting not found</h2>
-        <p className="text-xs text-secondary mt-1">
-          The requested meeting could not be loaded or is in a different workspace.
-        </p>
-        <Link
-          to="/app/meetings"
-          className="inline-block mt-4 px-4 py-2 text-xs font-semibold rounded bg-brand-teal text-white"
-        >
-          Return to Meetings List
-        </Link>
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4">
+        <div className="p-8 text-center bg-surface border border-ch-border rounded-lg">
+          <h2 className="text-base font-semibold text-primary">Meeting not found</h2>
+          <p className="text-xs text-secondary mt-1">
+            The requested meeting could not be loaded or is in a different workspace.
+          </p>
+          <Link
+            to="/app/meetings"
+            className="inline-block mt-4 px-4 py-2 text-xs font-semibold rounded bg-brand-teal text-white"
+          >
+            Return to Meetings List
+          </Link>
+        </div>
       </div>
     );
   }
@@ -290,7 +294,7 @@ export const MeetingDetailPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 pb-16">
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center text-xs text-secondary gap-1.5">
         <Link to="/app/meetings" className="hover:text-primary">

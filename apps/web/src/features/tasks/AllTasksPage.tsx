@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   TaskPriority,
@@ -25,33 +25,32 @@ import {
   addTaskAttachment,
   bulkTaskAction,
 } from '@/services/tasks';
-import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { Tabs } from '@/components/ui/Tabs';
+import { AllTasksHeader } from './components/AllTasksHeader';
+import {
+  WorkspaceTaskSummary,
+  type WorkspaceSummaryFilterKey,
+} from './components/WorkspaceTaskSummary';
+import { TaskDistribution } from './components/TaskDistribution';
+import {
+  TaskFilterToolbar,
+  type TaskFilterState,
+} from './components/TaskFilterToolbar';
 import { AllTasksTableView } from './components/AllTasksTableView';
 import { TaskKanbanBoard } from './components/TaskKanbanBoard';
+import { TeamWorkloadOverview } from './components/TeamWorkloadOverview';
 import { TaskCalendarView } from './components/TaskCalendarView';
-import { TaskByMemberView } from './components/TaskByMemberView';
 import { BulkActionBar } from './components/BulkActionBar';
 import { TaskDetailDrawer } from './components/TaskDetailDrawer';
 import { CreateTaskDialog } from './components/CreateTaskDialog';
 import { RescheduleTaskDialog } from './components/RescheduleTaskDialog';
 import { BlockTaskDialog } from './components/BlockTaskDialog';
 import { CompleteTaskDialog } from './components/CompleteTaskDialog';
-import {
-  Plus,
-  Search,
-  RotateCcw,
-  List,
-  Columns,
-  Calendar,
-  Users,
-} from 'lucide-react';
+import { Tabs } from '@/components/ui/Tabs';
+import { isTaskOverdue, getTaskDateBucket } from './utils/task-utils';
+import { List, Columns, Users, Calendar, AlertCircle } from 'lucide-react';
 
-type QuickTab = 'all' | 'open' | 'mine' | 'overdue' | 'in_progress' | 'completed';
-type ViewMode = 'table' | 'kanban' | 'calendar' | 'members';
+type ViewMode = 'table' | 'kanban' | 'members' | 'calendar';
+type QuickTab = 'all' | 'open' | 'mine' | 'overdue';
 
 export function AllTasksPage() {
   const queryClient = useQueryClient();
@@ -61,20 +60,29 @@ export function AllTasksPage() {
   const { data: profiles = [] } = useProfiles();
   const { data: workspaces = [] } = useWorkspaces();
 
+  const activeProfile = profiles.find((p) => p.id === selectedProfileId);
   const activeWorkspace = workspaces.find((w) => w.id === selectedWorkspaceId);
 
-  // View & Filters State
+  // Quick Tabs & View Mode
   const [activeTab, setActiveTab] = useState<QuickTab>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>('ALL');
-  const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
-  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
 
-  // Multi-select & Bulk operations state
+  // Summary KPI Filter (Quick Filter)
+  const [summaryFilter, setSummaryFilter] = useState<WorkspaceSummaryFilterKey | null>(null);
+
+  // Search & Filters State
+  const [filters, setFilters] = useState<TaskFilterState>({
+    search: '',
+    status: 'ALL',
+    priority: 'ALL',
+    dateRange: 'ALL',
+    assigneeId: 'ALL',
+  });
+
+  // Bulk Selection
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
 
-  // Dialogs & Drawer State
+  // Dialogs & Drawers
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -82,78 +90,144 @@ export function AllTasksPage() {
   const [blockTargetTask, setBlockTargetTask] = useState<TaskItem | null>(null);
   const [completeTargetTask, setCompleteTargetTask] = useState<TaskItem | null>(null);
 
-  // Compute effective filters
-  const isMineFilter = activeTab === 'mine';
-  const effectiveAssigneeId = isMineFilter
-    ? selectedProfileId || undefined
-    : selectedAssigneeId !== 'ALL'
-    ? selectedAssigneeId
-    : undefined;
-
-  const effectiveStatus =
-    activeTab === 'in_progress'
-      ? TaskStatus.IN_PROGRESS
-      : activeTab === 'completed'
-      ? TaskStatus.COMPLETED
-      : selectedStatus !== 'ALL'
-      ? (selectedStatus as TaskStatus)
-      : undefined;
-
-  const tabParam =
-    activeTab === 'overdue' ? 'overdue' : activeTab === 'open' ? 'all' : undefined;
-
-  // Fetch Tasks for Active Workspace
+  // Fetch all tasks for workspace
   const {
-    data: allFetchedTasks = [],
+    data: rawTasks = [],
     isLoading,
     isError,
     refetch,
+    isFetching,
   } = useQuery({
-    queryKey: [
-      'tasks',
-      selectedWorkspaceId,
-      {
-        scope: 'all_tasks',
-        tab: activeTab,
-        assigneeId: effectiveAssigneeId,
-        status: effectiveStatus,
-        priority: selectedPriority !== 'ALL' ? selectedPriority : undefined,
-        search: searchQuery.trim() || undefined,
-      },
-    ],
-    queryFn: () =>
-      fetchTasks({
-        mine: false,
-        tab: tabParam,
-        assigneeId: effectiveAssigneeId,
-        status: effectiveStatus,
-        priority: selectedPriority !== 'ALL' ? (selectedPriority as TaskPriority) : undefined,
-        search: searchQuery.trim() || undefined,
-      }),
+    queryKey: ['tasks', selectedWorkspaceId, { scope: 'all_tasks' }],
+    queryFn: () => fetchTasks({ mine: false }),
     staleTime: 10_000,
   });
 
-  // Client-side open filter refinement if tab is 'open'
-  const tasks = activeTab === 'open'
-    ? allFetchedTasks.filter((t) => t.status !== TaskStatus.COMPLETED && t.status !== TaskStatus.CANCELLED)
-    : allFetchedTasks;
+  // Compute filtered dataset
+  const filteredTasks = useMemo(() => {
+    let result = rawTasks;
 
-  // Keep selectedTask in sync when tasks update
+    // 1. KPI Summary Card Filter
+    if (summaryFilter) {
+      switch (summaryFilter) {
+        case 'open':
+          result = result.filter((t) => t.status !== 'COMPLETED' && t.status !== 'CANCELLED');
+          break;
+        case 'in_progress':
+          result = result.filter((t) => t.status === 'IN_PROGRESS');
+          break;
+        case 'due_today':
+          result = result.filter(
+            (t) =>
+              t.status !== 'COMPLETED' &&
+              t.status !== 'CANCELLED' &&
+              getTaskDateBucket(t) === 'Today',
+          );
+          break;
+        case 'overdue':
+          result = result.filter((t) => isTaskOverdue(t));
+          break;
+        case 'blocked':
+          result = result.filter((t) => t.status === 'BLOCKED');
+          break;
+        case 'unassigned':
+          result = result.filter((t) => !t.assigneeId || t.assigneeId === 'unassigned');
+          break;
+        case 'completed':
+          result = result.filter((t) => t.status === 'COMPLETED');
+          break;
+        case 'total':
+        default:
+          break;
+      }
+    }
+
+    // 2. Search query filter
+    if (filters.search.trim()) {
+      const q = filters.search.toLowerCase().trim();
+      result = result.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          (t.description && t.description.toLowerCase().includes(q)) ||
+          (t.assigneeName && t.assigneeName.toLowerCase().includes(q)) ||
+          (t.linkedRecordTitle && t.linkedRecordTitle.toLowerCase().includes(q)),
+      );
+    }
+
+    // 3. Status filter
+    if (filters.status !== 'ALL') {
+      result = result.filter((t) => t.status === filters.status);
+    }
+
+    // 4. Priority filter
+    if (filters.priority !== 'ALL') {
+      result = result.filter((t) => t.priority === filters.priority);
+    }
+
+    // 5. Assignee filter
+    if (filters.assigneeId && filters.assigneeId !== 'ALL') {
+      if (filters.assigneeId === 'UNASSIGNED') {
+        result = result.filter((t) => !t.assigneeId || t.assigneeId === 'unassigned');
+      } else {
+        result = result.filter((t) => t.assigneeId === filters.assigneeId);
+      }
+    }
+
+    // 6. Date Range filter
+    if (filters.dateRange !== 'ALL') {
+      switch (filters.dateRange) {
+        case 'TODAY':
+          result = result.filter((t) => getTaskDateBucket(t) === 'Today');
+          break;
+        case 'TOMORROW':
+          result = result.filter((t) => getTaskDateBucket(t) === 'Tomorrow');
+          break;
+        case 'OVERDUE':
+          result = result.filter((t) => isTaskOverdue(t));
+          break;
+        case 'THIS_WEEK': {
+          const now = new Date();
+          const nextWeek = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+          result = result.filter((t) => {
+            if (!t.deadline) return false;
+            const d = new Date(t.deadline);
+            return d >= now && d <= nextWeek;
+          });
+          break;
+        }
+        case 'NEXT_WEEK': {
+          const now = new Date();
+          const in7Days = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+          const in14Days = new Date(now.getTime() + 14 * 24 * 3600 * 1000);
+          result = result.filter((t) => {
+            if (!t.deadline) return false;
+            const d = new Date(t.deadline);
+            return d >= in7Days && d <= in14Days;
+          });
+          break;
+        }
+      }
+    }
+
+    return result;
+  }, [rawTasks, summaryFilter, filters]);
+
+  // Keep selectedTask in sync
   React.useEffect(() => {
     if (selectedTask) {
-      const updated = tasks.find((t) => t.id === selectedTask.id);
+      const updated = rawTasks.find((t) => t.id === selectedTask.id);
       if (updated) {
         setSelectedTask(updated);
       }
     }
-  }, [tasks]);
+  }, [rawTasks]);
 
   // Invalidation
   const invalidateTasks = () => {
     queryClient.invalidateQueries({ queryKey: ['tasks'] });
   };
 
-  // Selection handlers
+  // Bulk Selection Handlers
   const handleToggleSelectTask = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedTaskIds((prev) =>
@@ -162,10 +236,10 @@ export function AllTasksPage() {
   };
 
   const handleToggleSelectAll = () => {
-    if (selectedTaskIds.length === tasks.length) {
+    if (selectedTaskIds.length === filteredTasks.length) {
       setSelectedTaskIds([]);
     } else {
-      setSelectedTaskIds(tasks.map((t) => t.id));
+      setSelectedTaskIds(filteredTasks.map((t) => t.id));
     }
   };
 
@@ -173,7 +247,7 @@ export function AllTasksPage() {
     setSelectedTaskIds([]);
   };
 
-  // Bulk operation actions
+  // Bulk Actions
   const handleBulkReassign = async (targetAssigneeId: string) => {
     if (selectedTaskIds.length === 0) return;
     await bulkTaskAction({
@@ -207,7 +281,7 @@ export function AllTasksPage() {
     invalidateTasks();
   };
 
-  // Work session controls
+  // Quick Action Handlers
   const handleStartSession = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     await startWorkSession(id);
@@ -241,7 +315,11 @@ export function AllTasksPage() {
     setBlockTargetTask(task);
   };
 
-  const handleConfirmBlock = async (id: string, blockerReason: string, expectedResolutionDate?: string) => {
+  const handleConfirmBlock = async (
+    id: string,
+    blockerReason: string,
+    expectedResolutionDate?: string,
+  ) => {
     await blockTask(id, { blockerReason, expectedResolutionDate });
     invalidateTasks();
   };
@@ -251,7 +329,12 @@ export function AllTasksPage() {
     setRescheduleTargetTask(task);
   };
 
-  const handleConfirmReschedule = async (id: string, newDeadline: string, reason: string, newPlannedStart?: string) => {
+  const handleConfirmReschedule = async (
+    id: string,
+    newDeadline: string,
+    reason: string,
+    newPlannedStart?: string,
+  ) => {
     await rescheduleTask(id, { newDeadline, newPlannedStart, reason });
     invalidateTasks();
   };
@@ -281,239 +364,205 @@ export function AllTasksPage() {
     setIsDetailOpen(true);
   };
 
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setSelectedAssigneeId('ALL');
-    setSelectedPriority('ALL');
-    setSelectedStatus('ALL');
-    setActiveTab('all');
-  };
-
-  const hasActiveFilters =
-    searchQuery !== '' ||
-    selectedAssigneeId !== 'ALL' ||
-    selectedPriority !== 'ALL' ||
-    selectedStatus !== 'ALL' ||
-    activeTab !== 'all';
-
-  // Tabs configuration
   const quickTabs = [
     { id: 'all', label: 'All Tasks' },
     { id: 'open', label: 'Open' },
     { id: 'mine', label: 'My Tasks' },
     { id: 'overdue', label: 'Overdue' },
-    { id: 'in_progress', label: 'In Progress' },
-    { id: 'completed', label: 'Completed' },
   ];
 
+  const handleQuickTabChange = (tabId: string) => {
+    setActiveTab(tabId as QuickTab);
+    if (tabId === 'open') {
+      setSummaryFilter('open');
+    } else if (tabId === 'mine') {
+      setSummaryFilter(null);
+      setFilters((prev) => ({ ...prev, assigneeId: selectedProfileId || 'ALL' }));
+    } else if (tabId === 'overdue') {
+      setSummaryFilter('overdue');
+    } else {
+      setSummaryFilter(null);
+      setFilters((prev) => ({ ...prev, assigneeId: 'ALL' }));
+    }
+  };
+
+  const handleResetFilters = () => {
+    setActiveTab('all');
+    setSummaryFilter(null);
+    setFilters({
+      search: '',
+      status: 'ALL',
+      priority: 'ALL',
+      dateRange: 'ALL',
+      assigneeId: 'ALL',
+    });
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <Breadcrumbs
-            items={[
-              { label: 'Home', href: '/app/dashboard' },
-              { label: 'Tasks', href: '/app/tasks' },
-              { label: 'All Tasks' },
-            ]}
-          />
-          <h1 className="text-2xl font-bold text-ch-text-primary tracking-tight mt-1">
-            All Tasks
-          </h1>
-          <p className="text-xs text-ch-text-secondary mt-0.5">
-            Central task register and workload management across{' '}
-            <span className="font-semibold text-ch-text-primary">
-              {activeWorkspace?.name || 'Current Workspace'}
-            </span>
-          </p>
-        </div>
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 pb-16">
+      {/* 1. Page Header */}
+      <AllTasksHeader
+        workspaceName={activeWorkspace?.name}
+        profileName={activeProfile?.displayName}
+        onRefresh={() => refetch()}
+        isRefreshing={isFetching}
+        onCreateTask={() => setIsCreateOpen(true)}
+      />
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            onClick={() => setIsCreateOpen(true)}
-            className="w-full sm:w-auto"
-          >
-            <Plus size={16} className="mr-1.5" />
-            Create Task
-          </Button>
-        </div>
-      </div>
-
-      {/* Tabs & View Switcher */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-ch-border">
+      {/* Quick Tabs */}
+      <div className="border-b border-ch-border">
         <Tabs
           tabs={quickTabs}
           activeTab={activeTab}
-          onTabChange={(id) => setActiveTab(id as QuickTab)}
+          onTabChange={handleQuickTabChange}
           className="border-b-0"
         />
+      </div>
 
-        {/* View Mode Switcher */}
-        <div className="flex items-center gap-1 self-end md:self-auto pb-2 md:pb-0">
+      {/* 2. Workspace Task Summary (8 KPI Cards) */}
+      <WorkspaceTaskSummary
+        tasks={rawTasks}
+        activeFilter={summaryFilter}
+        onSelectFilter={(key) => {
+          if (summaryFilter === key) {
+            setSummaryFilter(null);
+          } else {
+            setSummaryFilter(key);
+          }
+        }}
+      />
+
+      {/* 3. Task Distribution Overview (Segmented bar chart) */}
+      <TaskDistribution
+        tasks={rawTasks}
+        selectedStatus={filters.status}
+        onSelectStatus={(status) => setFilters((prev) => ({ ...prev, status }))}
+      />
+
+      {/* 4. Search and Filters Toolbar */}
+      <TaskFilterToolbar
+        filters={filters}
+        onFilterChange={setFilters}
+        onReset={handleResetFilters}
+        assignees={profiles}
+        showAssigneeFilter={true}
+        totalResults={filteredTasks.length}
+      />
+
+      {/* 5. View Switcher Header Strip */}
+      <div className="flex items-center justify-between border-b border-ch-border pb-2 pt-1">
+        <div className="text-xs text-ch-text-secondary font-medium">
+          Showing <span className="font-bold text-ch-text-primary">{filteredTasks.length}</span>{' '}
+          {filteredTasks.length === 1 ? 'task' : 'tasks'}
+          {summaryFilter && (
+            <span className="ml-2 inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 font-semibold">
+              Filter: {summaryFilter.replace('_', ' ')}
+              <button
+                type="button"
+                onClick={() => setSummaryFilter(null)}
+                className="hover:opacity-75"
+              >
+                ×
+              </button>
+            </span>
+          )}
+        </div>
+
+        {/* View Switcher Buttons */}
+        <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setViewMode('table')}
-            title="List / Table View"
-            className={`p-1.5 rounded text-xs flex items-center gap-1 border ${
+            className={`p-1.5 rounded text-xs flex items-center gap-1.5 border transition-none ${
               viewMode === 'table'
-                ? 'bg-surface-muted text-ch-text-primary border-ch-border-strong font-semibold'
-                : 'text-ch-text-secondary border-transparent hover:bg-surface-muted'
+                ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 font-semibold'
+                : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-surface-muted'
             }`}
+            title="Table List View"
           >
-            <List size={15} />
+            <List size={14} />
             <span className="hidden sm:inline">Table</span>
           </button>
+
           <button
             type="button"
             onClick={() => setViewMode('kanban')}
-            title="Kanban Board View"
-            className={`p-1.5 rounded text-xs flex items-center gap-1 border ${
+            className={`p-1.5 rounded text-xs flex items-center gap-1.5 border transition-none ${
               viewMode === 'kanban'
-                ? 'bg-surface-muted text-ch-text-primary border-ch-border-strong font-semibold'
-                : 'text-ch-text-secondary border-transparent hover:bg-surface-muted'
+                ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 font-semibold'
+                : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-surface-muted'
             }`}
+            title="Kanban Board View"
           >
-            <Columns size={15} />
+            <Columns size={14} />
             <span className="hidden sm:inline">Kanban</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('calendar')}
-            title="Calendar / Agenda View"
-            className={`p-1.5 rounded text-xs flex items-center gap-1 border ${
-              viewMode === 'calendar'
-                ? 'bg-surface-muted text-ch-text-primary border-ch-border-strong font-semibold'
-                : 'text-ch-text-secondary border-transparent hover:bg-surface-muted'
-            }`}
-          >
-            <Calendar size={15} />
-            <span className="hidden sm:inline">Calendar</span>
-          </button>
+
           <button
             type="button"
             onClick={() => setViewMode('members')}
-            title="By Member Workload View"
-            className={`p-1.5 rounded text-xs flex items-center gap-1 border ${
+            className={`p-1.5 rounded text-xs flex items-center gap-1.5 border transition-none ${
               viewMode === 'members'
-                ? 'bg-surface-muted text-ch-text-primary border-ch-border-strong font-semibold'
-                : 'text-ch-text-secondary border-transparent hover:bg-surface-muted'
+                ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 font-semibold'
+                : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-surface-muted'
             }`}
+            title="By Member Workload View"
           >
-            <Users size={15} />
+            <Users size={14} />
             <span className="hidden sm:inline">By Member</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setViewMode('calendar')}
+            className={`p-1.5 rounded text-xs flex items-center gap-1.5 border transition-none ${
+              viewMode === 'calendar'
+                ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800 font-semibold'
+                : 'bg-surface text-ch-text-secondary border-ch-border hover:bg-surface-muted'
+            }`}
+            title="Calendar / Agenda View"
+          >
+            <Calendar size={14} />
+            <span className="hidden sm:inline">Calendar</span>
           </button>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-surface p-3 rounded-lg border border-ch-border flex flex-wrap items-center gap-2.5 text-xs">
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ch-text-muted" />
-          <Input
-            placeholder="Search tasks across entire workspace..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-8 text-xs"
-          />
+      {/* Loading Skeleton */}
+      {isLoading && (
+        <div className="space-y-3 py-6">
+          <div className="h-10 bg-surface-muted rounded border border-ch-border animate-pulse" />
+          <div className="h-16 bg-surface-muted rounded border border-ch-border animate-pulse" />
+          <div className="h-16 bg-surface-muted rounded border border-ch-border animate-pulse" />
         </div>
-
-        {/* Assignee Filter */}
-        <div className="w-40">
-          <Select
-            value={selectedAssigneeId}
-            onChange={(e) => setSelectedAssigneeId(e.target.value)}
-            className="h-8 text-xs"
-            disabled={activeTab === 'mine'}
-            options={[
-              { value: 'ALL', label: 'All Assignees' },
-              ...profiles.map((p) => ({
-                value: p.id,
-                label: p.displayName,
-              })),
-            ]}
-          />
-        </div>
-
-        {/* Priority Filter */}
-        <div className="w-36">
-          <Select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="h-8 text-xs"
-            options={[
-              { value: 'ALL', label: 'All Priorities' },
-              { value: TaskPriority.URGENT, label: 'Urgent' },
-              { value: TaskPriority.HIGH, label: 'High' },
-              { value: TaskPriority.MEDIUM, label: 'Medium' },
-              { value: TaskPriority.LOW, label: 'Low' },
-            ]}
-          />
-        </div>
-
-        {/* Status Filter */}
-        <div className="w-36">
-          <Select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="h-8 text-xs"
-            disabled={activeTab === 'in_progress' || activeTab === 'completed'}
-            options={[
-              { value: 'ALL', label: 'All Statuses' },
-              { value: TaskStatus.TODO, label: 'To Do' },
-              { value: TaskStatus.IN_PROGRESS, label: 'In Progress' },
-              { value: TaskStatus.ON_HOLD, label: 'On Hold' },
-              { value: TaskStatus.BLOCKED, label: 'Blocked' },
-              { value: TaskStatus.COMPLETED, label: 'Completed' },
-            ]}
-          />
-        </div>
-
-        {/* Reset Filter Button */}
-        {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetFilters}
-            className="h-8 px-2 text-xs text-ch-text-secondary hover:text-ch-text-primary"
-            title="Reset filters"
-          >
-            <RotateCcw size={13} className="mr-1" />
-            Reset
-          </Button>
-        )}
-      </div>
-
-      {/* Floating Bulk Operations Toolbar */}
-      {selectedTaskIds.length > 0 && (
-        <BulkActionBar
-          selectedCount={selectedTaskIds.length}
-          onClearSelection={handleClearSelection}
-          onBulkReassign={handleBulkReassign}
-          onBulkSetPriority={handleBulkSetPriority}
-          onBulkComplete={handleBulkComplete}
-        />
       )}
 
-      {/* Main Views */}
-      {isLoading ? (
-        <div className="text-center py-16 bg-surface rounded-lg border border-ch-border">
-          <p className="text-xs text-ch-text-secondary">Loading workspace tasks...</p>
-        </div>
-      ) : isError ? (
-        <div className="text-center py-12 bg-surface rounded-lg border border-danger/30 text-danger text-xs">
-          <p className="font-semibold">Unable to load tasks for this workspace.</p>
-          <Button variant="secondary" size="sm" onClick={() => refetch()} className="mt-3">
+      {/* Error State */}
+      {isError && !isLoading && (
+        <div className="p-6 bg-red-50 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-900/60 text-center space-y-2">
+          <AlertCircle size={24} className="mx-auto text-red-600 dark:text-red-400" />
+          <h3 className="text-sm font-semibold text-red-800 dark:text-red-300">
+            Unable to load workspace tasks
+          </h3>
+          <p className="text-xs text-red-600 dark:text-red-400">
+            There was an error communicating with the task service. Please try again.
+          </p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-2 px-3 py-1.5 rounded text-xs font-semibold bg-red-600 text-white hover:bg-red-700"
+          >
             Retry
-          </Button>
+          </button>
         </div>
-      ) : (
+      )}
+
+      {/* 6. Main Task Content */}
+      {!isLoading && !isError && (
         <>
           {viewMode === 'table' && (
             <AllTasksTableView
-              tasks={tasks}
+              tasks={filteredTasks}
               selectedTaskIds={selectedTaskIds}
               onToggleSelectTask={handleToggleSelectTask}
               onToggleSelectAll={handleToggleSelectAll}
@@ -524,12 +573,13 @@ export function AllTasksPage() {
               onComplete={handleOpenComplete}
               onReschedule={handleOpenReschedule}
               onBlock={handleOpenBlock}
+              onCreateTask={() => setIsCreateOpen(true)}
             />
           )}
 
           {viewMode === 'kanban' && (
             <TaskKanbanBoard
-              tasks={tasks}
+              tasks={filteredTasks}
               onSelectTask={handleSelectTask}
               onStart={handleStartSession}
               onPause={handlePauseSession}
@@ -537,40 +587,62 @@ export function AllTasksPage() {
               onComplete={handleOpenComplete}
               onReschedule={handleOpenReschedule}
               onBlock={handleOpenBlock}
-            />
-          )}
-
-          {viewMode === 'calendar' && (
-            <TaskCalendarView
-              tasks={tasks}
-              onSelectTask={handleSelectTask}
-              onStart={handleStartSession}
-              onPause={handlePauseSession}
-              onResume={handleResumeSession}
-              onComplete={handleOpenComplete}
             />
           )}
 
           {viewMode === 'members' && (
-            <TaskByMemberView
-              tasks={tasks}
-              profiles={profiles}
+            <div className="space-y-4">
+              <TeamWorkloadOverview
+                tasks={rawTasks}
+                profiles={profiles}
+                selectedAssigneeId={filters.assigneeId}
+                onSelectAssignee={(assigneeId) =>
+                  setFilters((prev) => ({ ...prev, assigneeId }))
+                }
+              />
+
+              <div className="pt-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-ch-text-secondary mb-2">
+                  Tasks for Selected Member
+                </h4>
+                <AllTasksTableView
+                  tasks={filteredTasks}
+                  selectedTaskIds={selectedTaskIds}
+                  onToggleSelectTask={handleToggleSelectTask}
+                  onToggleSelectAll={handleToggleSelectAll}
+                  onSelectTask={handleSelectTask}
+                  onStart={handleStartSession}
+                  onPause={handlePauseSession}
+                  onResume={handleResumeSession}
+                  onComplete={handleOpenComplete}
+                  onReschedule={handleOpenReschedule}
+                  onBlock={handleOpenBlock}
+                  onCreateTask={() => setIsCreateOpen(true)}
+                />
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'calendar' && (
+            <TaskCalendarView
+              tasks={filteredTasks}
               onSelectTask={handleSelectTask}
-              onStart={handleStartSession}
-              onPause={handlePauseSession}
-              onResume={handleResumeSession}
-              onComplete={handleOpenComplete}
-              onReschedule={handleOpenReschedule}
-              onBlock={handleOpenBlock}
-              onCreateTaskForMember={(memberId) => {
-                setIsCreateOpen(true);
-              }}
             />
           )}
         </>
       )}
 
-      {/* Task Detail Drawer */}
+      {/* 7. Bulk Action Bar (Docked at bottom when tasks selected) */}
+      <BulkActionBar
+        selectedCount={selectedTaskIds.length}
+        profiles={profiles}
+        onClearSelection={handleClearSelection}
+        onBulkReassign={handleBulkReassign}
+        onBulkSetPriority={handleBulkSetPriority}
+        onBulkComplete={handleBulkComplete}
+      />
+
+      {/* 8. Task Detail Drawer */}
       <TaskDetailDrawer
         task={selectedTask}
         open={isDetailOpen}
@@ -578,47 +650,45 @@ export function AllTasksPage() {
         onStartSession={handleStartSession}
         onPauseSession={handlePauseSession}
         onResumeSession={handleResumeSession}
-        onOpenCompleteModal={(task) => setCompleteTargetTask(task)}
-        onOpenBlockModal={(task) => setBlockTargetTask(task)}
-        onOpenRescheduleModal={(task) => setRescheduleTargetTask(task)}
+        onOpenCompleteModal={handleOpenComplete}
+        onOpenBlockModal={handleOpenBlock}
+        onOpenRescheduleModal={handleOpenReschedule}
         onToggleChecklist={handleToggleChecklist}
         onAddChecklist={handleAddChecklist}
         onAddComment={handleAddComment}
         onAddAttachment={handleAddAttachment}
       />
 
-      {/* Create Task Dialog */}
+      {/* 9. Dialogs */}
       <CreateTaskDialog
         open={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        onCreate={async (dto: CreateTaskDto) => {
+        onCreateTask={async (dto) => {
           await createTask(dto);
           invalidateTasks();
         }}
+        preselectedAssigneeId={selectedProfileId}
       />
 
-      {/* Reschedule Task Dialog */}
       <RescheduleTaskDialog
         task={rescheduleTargetTask}
-        open={!!rescheduleTargetTask}
+        open={Boolean(rescheduleTargetTask)}
         onClose={() => setRescheduleTargetTask(null)}
-        onReschedule={handleConfirmReschedule}
+        onConfirm={handleConfirmReschedule}
       />
 
-      {/* Block Task Dialog */}
       <BlockTaskDialog
         task={blockTargetTask}
-        open={!!blockTargetTask}
+        open={Boolean(blockTargetTask)}
         onClose={() => setBlockTargetTask(null)}
-        onBlock={handleConfirmBlock}
+        onConfirm={handleConfirmBlock}
       />
 
-      {/* Complete Task Dialog */}
       <CompleteTaskDialog
         task={completeTargetTask}
-        open={!!completeTargetTask}
+        open={Boolean(completeTargetTask)}
         onClose={() => setCompleteTargetTask(null)}
-        onComplete={handleConfirmComplete}
+        onConfirm={handleConfirmComplete}
       />
     </div>
   );

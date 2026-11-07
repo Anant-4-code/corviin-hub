@@ -1,5 +1,8 @@
-import React from 'react';
-import { RealEstatePartnerRecord } from '@corviin-hub/shared';
+import React, { useState } from 'react';
+import {
+  RealEstatePartnerRecord,
+  RealEstatePartnerStage,
+} from '@corviin-hub/shared';
 import { Button } from '@/components/ui/Button';
 import {
   PARTNER_TYPE_LABELS,
@@ -11,19 +14,28 @@ import {
 interface PartnerRecordsTableViewProps {
   records: RealEstatePartnerRecord[];
   onSelectRecord: (record: RealEstatePartnerRecord) => void;
+  onOpenChangeStage?: (record: RealEstatePartnerRecord) => void;
+  onOpenScheduleMeeting?: (record: RealEstatePartnerRecord) => void;
   isLoading?: boolean;
 }
+
+type SortField = 'companyName' | 'stage' | 'assignedMemberName' | 'nextFollowUpDate' | 'createdAt';
 
 export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = ({
   records,
   onSelectRecord,
+  onOpenChangeStage,
+  onOpenScheduleMeeting,
   isLoading,
 }) => {
+  const [sortField, setSortField] = useState<SortField>('createdAt');
+  const [sortAsc, setSortAsc] = useState<boolean>(false);
+
   if (isLoading) {
     return (
       <div className="bg-surface border border-ch-border rounded-lg p-6 space-y-3">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-14 bg-ch-bg rounded border border-ch-border" />
+          <div key={i} className="h-14 bg-ch-bg rounded border border-ch-border animate-pulse" />
         ))}
       </div>
     );
@@ -39,6 +51,26 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
       </div>
     );
   }
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(true);
+    }
+  };
+
+  const sortedRecords = [...records].sort((a, b) => {
+    let aVal = a[sortField] || '';
+    let bVal = b[sortField] || '';
+    if (sortField === 'nextFollowUpDate') {
+      aVal = a.nextFollowUpDate || '9999-99-99';
+      bVal = b.nextFollowUpDate || '9999-99-99';
+    }
+    const cmp = String(aVal).localeCompare(String(bVal));
+    return sortAsc ? cmp : -cmp;
+  });
 
   const isOverdue = (dateStr?: string) => {
     if (!dateStr) return false;
@@ -59,6 +91,11 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
     }
   };
 
+  const getSortIndicator = (field: SortField) => {
+    if (sortField !== field) return '↕';
+    return sortAsc ? '↑' : '↓';
+  };
+
   return (
     <div className="space-y-4">
       {/* ============================================================
@@ -67,20 +104,46 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
       <div className="hidden md:block overflow-x-auto bg-surface border border-ch-border rounded-lg shadow-sm">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="border-b border-ch-border bg-ch-bg text-ch-text-secondary font-semibold uppercase tracking-wider">
-              <th className="py-3 px-4">Company / Partner</th>
-              <th className="py-3 px-4">Contact Person</th>
-              <th className="py-3 px-4">Partner Type</th>
+            <tr className="border-b border-ch-border bg-ch-bg text-ch-text-secondary font-semibold uppercase tracking-wider select-none">
+              <th
+                className="py-3 px-4 cursor-pointer hover:text-ch-text-primary"
+                onClick={() => handleSort('companyName')}
+              >
+                Company / Partner {getSortIndicator('companyName')}
+              </th>
+              <th className="py-3 px-4">Contact & Phone</th>
+              <th className="py-3 px-4">Partner Category</th>
               <th className="py-3 px-4">Location</th>
               <th className="py-3 px-4">Projects</th>
-              <th className="py-3 px-4">Stage</th>
-              <th className="py-3 px-4">Assigned</th>
-              <th className="py-3 px-4">Next Follow-up</th>
+              <th
+                className="py-3 px-4 cursor-pointer hover:text-ch-text-primary"
+                onClick={() => handleSort('stage')}
+              >
+                Stage {getSortIndicator('stage')}
+              </th>
+              <th
+                className="py-3 px-4 cursor-pointer hover:text-ch-text-primary"
+                onClick={() => handleSort('assignedMemberName')}
+              >
+                Assigned {getSortIndicator('assignedMemberName')}
+              </th>
+              <th
+                className="py-3 px-4 cursor-pointer hover:text-ch-text-primary"
+                onClick={() => handleSort('nextFollowUpDate')}
+              >
+                Next Follow-up {getSortIndicator('nextFollowUpDate')}
+              </th>
+              <th
+                className="py-3 px-4 cursor-pointer hover:text-ch-text-primary"
+                onClick={() => handleSort('createdAt')}
+              >
+                Created {getSortIndicator('createdAt')}
+              </th>
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ch-border">
-            {records.map((record) => {
+            {sortedRecords.map((record) => {
               const overdue = isOverdue(record.nextFollowUpDate);
               const cleanPhone = record.phone.replace(/\D/g, '');
 
@@ -88,7 +151,7 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
                 <tr
                   key={record.id}
                   onClick={() => onSelectRecord(record)}
-                  className="hover:bg-ch-bg/50 cursor-pointer text-ch-text-primary"
+                  className="hover:bg-ch-bg/50 cursor-pointer text-ch-text-primary transition-none"
                 >
                   {/* Company */}
                   <td className="py-3 px-4">
@@ -99,7 +162,7 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-[11px] text-accent hover:underline"
+                        className="text-[11px] text-accent hover:underline inline-block mt-0.5"
                       >
                         {record.website.replace(/^https?:\/\//, '')}
                       </a>
@@ -108,7 +171,7 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
 
                   {/* Contact Person */}
                   <td className="py-3 px-4">
-                    <p className="font-medium">{record.contactPerson || '—'}</p>
+                    <p className="font-medium text-ch-text-primary">{record.contactPerson || '—'}</p>
                     <div className="flex items-center gap-2 mt-0.5" onClick={(e) => e.stopPropagation()}>
                       <a
                         href={`tel:${record.phone}`}
@@ -128,10 +191,19 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
                           WA
                         </a>
                       )}
+                      {record.email && (
+                        <a
+                          href={`mailto:${record.email}`}
+                          className="text-[11px] text-ch-text-secondary hover:underline"
+                          title={record.email}
+                        >
+                          ✉️
+                        </a>
+                      )}
                     </div>
                   </td>
 
-                  {/* Partner Type */}
+                  {/* Partner Category */}
                   <td className="py-3 px-4">
                     <span
                       className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium border ${
@@ -150,11 +222,11 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
                   {/* Projects */}
                   <td className="py-3 px-4">
                     {record.projects && record.projects.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      <div className="flex flex-wrap gap-1 max-w-[180px]">
                         {record.projects.slice(0, 2).map((proj) => (
                           <span
                             key={proj.id}
-                            className="bg-ch-bg border border-ch-border text-ch-text-secondary px-1.5 py-0.5 rounded text-[10px] truncate max-w-[150px]"
+                            className="bg-ch-bg border border-ch-border text-ch-text-secondary px-1.5 py-0.5 rounded text-[10px] truncate max-w-[140px]"
                             title={`${proj.name} (${proj.status})`}
                           >
                             {proj.name}
@@ -184,7 +256,12 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
 
                   {/* Assigned Member */}
                   <td className="py-3 px-4 font-medium text-ch-text-secondary">
-                    {record.assignedMemberName}
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-5 h-5 rounded-full bg-accent/20 text-accent font-bold text-[10px] flex items-center justify-center">
+                        {record.assignedMemberName.charAt(0)}
+                      </div>
+                      <span>{record.assignedMemberName}</span>
+                    </div>
                   </td>
 
                   {/* Next Follow-up */}
@@ -202,7 +279,7 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
                           {overdue && <span className="ml-1 text-[10px] font-bold">[OVERDUE]</span>}
                         </p>
                         {record.nextFollowUpTitle && (
-                          <p className="text-[11px] text-ch-text-tertiary truncate max-w-[160px]">
+                          <p className="text-[11px] text-ch-text-tertiary truncate max-w-[150px]">
                             {record.nextFollowUpTitle}
                           </p>
                         )}
@@ -212,9 +289,36 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
                     )}
                   </td>
 
+                  {/* Created Date */}
+                  <td className="py-3 px-4 text-ch-text-secondary">
+                    {formatDate(record.createdAt)}
+                  </td>
+
                   {/* Actions */}
                   <td className="py-3 px-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1">
+                      {onOpenChangeStage && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onOpenChangeStage(record)}
+                          className="text-xs h-7 px-1.5 text-ch-text-secondary hover:text-ch-text-primary"
+                          title="Change Stage"
+                        >
+                          Stage
+                        </Button>
+                      )}
+                      {onOpenScheduleMeeting && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onOpenScheduleMeeting(record)}
+                          className="text-xs h-7 px-1.5 text-ch-text-secondary hover:text-ch-text-primary"
+                          title="Schedule Meeting"
+                        >
+                          Meet
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -236,7 +340,7 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
           2. MOBILE CARD VIEW (Visible only on Mobile)
          ============================================================ */}
       <div className="block md:hidden space-y-3">
-        {records.map((record) => {
+        {sortedRecords.map((record) => {
           const overdue = isOverdue(record.nextFollowUpDate);
           const cleanPhone = record.phone.replace(/\D/g, '');
 
@@ -275,8 +379,12 @@ export const PartnerRecordsTableView: React.FC<PartnerRecordsTableViewProps> = (
 
               {/* Contact Person & Assigned Member */}
               <div className="flex items-center justify-between text-xs text-ch-text-secondary pt-1 border-t border-ch-border">
-                <span>Contact: <strong className="text-ch-text-primary">{record.contactPerson || '—'}</strong></span>
-                <span>Assigned: <strong className="text-ch-text-primary">{record.assignedMemberName}</strong></span>
+                <span>
+                  Contact: <strong className="text-ch-text-primary">{record.contactPerson || '—'}</strong>
+                </span>
+                <span>
+                  Assigned: <strong className="text-ch-text-primary">{record.assignedMemberName}</strong>
+                </span>
               </div>
 
               {/* Projects Chips */}

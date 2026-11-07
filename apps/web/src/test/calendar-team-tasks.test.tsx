@@ -12,8 +12,17 @@ import {
 import { TeamTasksSummaryStrip } from '../features/calendar/components/TeamTasksSummaryStrip';
 import { TeamTasksDateNavigation } from '../features/calendar/components/TeamTasksDateNavigation';
 import { MemberAccordionSection } from '../features/calendar/components/MemberAccordionSection';
+import { TeamTasksKpiCards } from '../features/calendar/components/TeamTasksKpiCards';
+import { TeamTasksToolbar } from '../features/calendar/components/TeamTasksToolbar';
+import { TeamTasksMonthGrid } from '../features/calendar/components/TeamTasksMonthGrid';
+import { TeamTasksWeekGrid } from '../features/calendar/components/TeamTasksWeekGrid';
+import { TeamTasksDayGrid } from '../features/calendar/components/TeamTasksDayGrid';
+import { TeamTasksAgendaView } from '../features/calendar/components/TeamTasksAgendaView';
+import { TeamTasksWorkloadPanel } from '../features/calendar/components/TeamTasksWorkloadPanel';
+import { TeamTasksUnscheduledPanel } from '../features/calendar/components/TeamTasksUnscheduledPanel';
 import { CalendarTeamTasksPage } from '../features/calendar/CalendarTeamTasksPage';
 import * as calendarService from '../services/calendar';
+import * as tasksService from '../services/tasks';
 
 const mockTask: TaskItem = {
   id: 'tsk-tch-001',
@@ -28,7 +37,7 @@ const mockTask: TaskItem = {
   creatorName: 'Anant',
   plannedStart: '2026-11-05T09:00:00.000Z',
   deadline: '2026-11-05T17:00:00.000Z',
-  checklist: [],
+  checklist: [{ id: 'chk-1', title: 'Check schemas', completed: false }],
   workSessions: [
     {
       id: 'sess-1',
@@ -176,7 +185,141 @@ describe('Calendar: Team Tasks Components', () => {
     expect(onPauseSession).toHaveBeenCalledWith(mockTask);
   });
 
-  it('CalendarTeamTasksPage renders dynamic member groups from backend query', async () => {
+  it('TeamTasksKpiCards renders 6 metrics and triggers filter selection', () => {
+    const onSelectKpi = vi.fn();
+    render(
+      <TeamTasksKpiCards
+        metrics={{
+          totalScheduled: 15,
+          dueToday: 3,
+          totalOverdue: 2,
+          totalInProgress: 5,
+          totalBlocked: 1,
+          completedThisWeek: 4,
+        }}
+        activeFilter="OVERDUE"
+        onSelectKpi={onSelectKpi}
+      />,
+    );
+
+    expect(screen.getByText('Scheduled for Date')).toBeInTheDocument();
+    expect(screen.getByText('15')).toBeInTheDocument();
+    expect(screen.getByText('Due Today')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.getByText('Urgent / Overdue')).toBeInTheDocument();
+    expect(screen.getByText('Blocked')).toBeInTheDocument();
+    expect(screen.getByText('Completed')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Due Today'));
+    expect(onSelectKpi).toHaveBeenCalledWith('DUE_TODAY');
+  });
+
+  it('TeamTasksToolbar renders navigation and triggers view mode switches', () => {
+    const onViewModeChange = vi.fn();
+    const onToday = vi.fn();
+    const onPrev = vi.fn();
+    const onNext = vi.fn();
+
+    render(
+      <TeamTasksToolbar
+        currentDate={new Date('2026-11-05T12:00:00.000Z')}
+        viewMode="MONTH"
+        onViewModeChange={onViewModeChange}
+        onPrev={onPrev}
+        onNext={onNext}
+        onToday={onToday}
+        onDateSelect={vi.fn()}
+        searchQuery=""
+        onSearchChange={vi.fn()}
+        isFilterOpen={false}
+        onToggleFilter={vi.fn()}
+        activeFilterCount={0}
+        isWorkloadOpen={false}
+        onToggleWorkload={vi.fn()}
+        isUnscheduledOpen={false}
+        onToggleUnscheduled={vi.fn()}
+        unscheduledCount={3}
+        onCreateTask={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('November 2026')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Today' }));
+    expect(onToday).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByLabelText('Previous period'));
+    expect(onPrev).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByLabelText('Next period'));
+    expect(onNext).toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /week/i }));
+    expect(onViewModeChange).toHaveBeenCalledWith('WEEK');
+
+    fireEvent.click(screen.getByRole('button', { name: /agenda/i }));
+    expect(onViewModeChange).toHaveBeenCalledWith('AGENDA');
+  });
+
+  it('TeamTasksMonthGrid displays days and task items', () => {
+    const onSelectTask = vi.fn();
+    const onSelectDate = vi.fn();
+
+    render(
+      <TeamTasksMonthGrid
+        currentDate={new Date('2026-11-05T12:00:00.000Z')}
+        tasks={[mockTask]}
+        onSelectTask={onSelectTask}
+        onSelectDate={onSelectDate}
+      />,
+    );
+
+    expect(screen.getByText('Mon')).toBeInTheDocument();
+    expect(screen.getByText('Sun')).toBeInTheDocument();
+    expect(screen.getByText('Review OpenAPI Swagger documentation')).toBeInTheDocument();
+  });
+
+  it('TeamTasksAgendaView renders chronological list and triggers task details', () => {
+    const onSelectTask = vi.fn();
+
+    render(
+      <TeamTasksAgendaView
+        tasks={[mockTask]}
+        onSelectTask={onSelectTask}
+        onRescheduleTask={vi.fn()}
+        onCompleteTask={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Review OpenAPI Swagger documentation')).toBeInTheDocument();
+    expect(screen.getByText('Anant')).toBeInTheDocument();
+    expect(screen.getByText('1 task')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Review OpenAPI Swagger documentation'));
+    expect(onSelectTask).toHaveBeenCalledWith(mockTask);
+  });
+
+  it('TeamTasksUnscheduledPanel displays unscheduled tasks', () => {
+    const unscheduledTask: TaskItem = {
+      ...mockTask,
+      id: 'tsk-unsch-1',
+      title: 'Unscheduled backlog task',
+      deadline: '',
+    };
+
+    render(
+      <TeamTasksUnscheduledPanel
+        tasks={[unscheduledTask]}
+        onSelectTask={vi.fn()}
+        onScheduleTask={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Unscheduled Tasks/i)).toBeInTheDocument();
+    expect(screen.getByText('Unscheduled backlog task')).toBeInTheDocument();
+  });
+
+  it('CalendarTeamTasksPage renders dynamic member groups and tasks from backend query', async () => {
     vi.spyOn(calendarService, 'fetchTeamTasksCalendar').mockResolvedValue({
       selectedDate: '2026-11-05',
       members: [mockMemberGroup],
@@ -189,13 +332,14 @@ describe('Calendar: Team Tasks Components', () => {
       },
     });
 
+    vi.spyOn(tasksService, 'fetchTasks').mockResolvedValue([mockTask]);
+
     render(<CalendarTeamTasksPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
       expect(screen.getByText('Scheduled for Date')).toBeInTheDocument();
-      expect(screen.getByText('Anant')).toBeInTheDocument();
       expect(screen.getByText('Review OpenAPI Swagger documentation')).toBeInTheDocument();
+      expect(screen.getByText('Anant')).toBeInTheDocument();
     });
   });
 });
-

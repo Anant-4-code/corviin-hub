@@ -15,6 +15,7 @@ export interface InAppNotificationItem {
   isRead: boolean;
   readAt?: string;
   createdAt: string;
+  priority?: 'HIGH' | 'MEDIUM' | 'LOW' | 'URGENT';
 }
 
 export interface AuditEventItem {

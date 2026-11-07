@@ -126,7 +126,7 @@ export function CrmBuyersPage() {
   // ==========================================
   if (!isRealEstateWorkspace) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-16">
         <Breadcrumbs
           items={[
             { label: 'CRM', href: '/app/crm' },
@@ -219,7 +219,7 @@ export function CrmBuyersPage() {
   const pageSize = filters.pageSize || 20;
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 pb-16">
       <Breadcrumbs
         items={[
           { label: 'CRM', href: '/app/crm' },

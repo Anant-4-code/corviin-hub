@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import {
   RealEstatePartnerRecord,
   RealEstatePartnerStage,
-  ChangePartnerStageDto,
+  CrmInteractionType,
 } from '@corviin-hub/shared';
 import { Drawer } from '@/components/ui/Drawer';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import {
   PARTNER_TYPE_LABELS,
@@ -29,6 +28,16 @@ interface PartnerRecordDetailDrawerProps {
   onAddNote?: (noteText: string) => Promise<void>;
 }
 
+type TabKey =
+  | 'overview'
+  | 'organization'
+  | 'contacts'
+  | 'projects'
+  | 'meetings'
+  | 'followups'
+  | 'documents'
+  | 'activity';
+
 export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps> = ({
   isOpen,
   onClose,
@@ -41,13 +50,13 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
   onQuickAdvanceStage,
   onAddNote,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'projects' | 'meetings' | 'tasks' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [noteText, setNoteText] = useState('');
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
 
   if (!partner) return null;
 
-  const cleanPhone = partner.phone.replace(/\D/g, '');
+  const cleanPhone = partner.phone ? partner.phone.replace(/\D/g, '') : '';
 
   const formatDate = (isoStr?: string) => {
     if (!isoStr) return '—';
@@ -82,7 +91,7 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
       open={isOpen}
       onClose={onClose}
       title={partner.companyName}
-      width="w-full sm:w-[560px] md:w-[680px]"
+      width="w-full sm:w-[580px] md:w-[720px]"
     >
       <div className="space-y-5 pb-8 text-xs text-ch-text-primary">
         {/* ============================================================
@@ -91,7 +100,7 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
         <div className="bg-ch-bg p-3.5 rounded-lg border border-ch-border space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={`inline-block px-2.5 py-0.5 rounded text-xs font-semibold border ${
                     PARTNER_TYPE_BADGE_CLASSES[partner.partnerType]
@@ -141,7 +150,7 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
             </div>
           </div>
 
-          {/* Quick Metrics Line */}
+          {/* Key Metric Indicators */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-ch-border text-[11px]">
             <div>
               <span className="text-ch-text-secondary block">Assigned Member</span>
@@ -158,7 +167,9 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
             <div>
               <span className="text-ch-text-secondary block">Portfolio Value</span>
               <strong className="text-ch-text-primary">
-                {partner.estimatedPortfolioValue ? `₹${(partner.estimatedPortfolioValue / 10000000).toFixed(1)} Cr` : '—'}
+                {partner.estimatedPortfolioValue
+                  ? `₹${(partner.estimatedPortfolioValue / 10000000).toFixed(1)} Cr`
+                  : '—'}
               </strong>
             </div>
           </div>
@@ -188,7 +199,7 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
                   key={st}
                   type="button"
                   onClick={() => onQuickAdvanceStage && onQuickAdvanceStage(st)}
-                  className={`px-2 py-1 rounded text-[10px] font-semibold flex-shrink-0 border ${
+                  className={`px-2 py-1 rounded text-[10px] font-semibold flex-shrink-0 border transition-none ${
                     isCurrent
                       ? 'bg-accent text-white border-accent'
                       : isPast
@@ -205,7 +216,7 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
         </div>
 
         {/* ============================================================
-            SECTION 3: ACTION TOOLBAR
+            SECTION 3: CONTEXTUAL ACTION TOOLBAR
            ============================================================ */}
         <div className="flex flex-wrap items-center gap-2">
           <Button size="sm" variant="primary" onClick={onOpenConfirmOrActivate} className="text-xs">
@@ -223,24 +234,46 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
         </div>
 
         {/* ============================================================
-            SECTION 4: TABS NAVIGATION
+            SECTION 4: 8-TAB NAVIGATION
            ============================================================ */}
-        <div className="flex border-b border-ch-border text-xs gap-4 font-semibold" role="tablist">
+        <div className="flex border-b border-ch-border text-xs gap-3 font-semibold overflow-x-auto select-none">
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
-            className={`pb-2 border-b-2 ${
+            className={`pb-2 border-b-2 whitespace-nowrap ${
               activeTab === 'overview'
                 ? 'border-accent text-accent'
                 : 'border-transparent text-ch-text-secondary hover:text-ch-text-primary'
             }`}
           >
-            Overview & Scope
+            Overview
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('organization')}
+            className={`pb-2 border-b-2 whitespace-nowrap ${
+              activeTab === 'organization'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-ch-text-secondary hover:text-ch-text-primary'
+            }`}
+          >
+            Organization
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('contacts')}
+            className={`pb-2 border-b-2 whitespace-nowrap ${
+              activeTab === 'contacts'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-ch-text-secondary hover:text-ch-text-primary'
+            }`}
+          >
+            Contacts
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('projects')}
-            className={`pb-2 border-b-2 ${
+            className={`pb-2 border-b-2 whitespace-nowrap ${
               activeTab === 'projects'
                 ? 'border-accent text-accent'
                 : 'border-transparent text-ch-text-secondary hover:text-ch-text-primary'
@@ -251,30 +284,41 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
           <button
             type="button"
             onClick={() => setActiveTab('meetings')}
-            className={`pb-2 border-b-2 ${
+            className={`pb-2 border-b-2 whitespace-nowrap ${
               activeTab === 'meetings'
                 ? 'border-accent text-accent'
                 : 'border-transparent text-ch-text-secondary hover:text-ch-text-primary'
             }`}
           >
-            Meetings & Decisions
+            Meetings
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('tasks')}
-            className={`pb-2 border-b-2 ${
-              activeTab === 'tasks'
+            onClick={() => setActiveTab('followups')}
+            className={`pb-2 border-b-2 whitespace-nowrap ${
+              activeTab === 'followups'
                 ? 'border-accent text-accent'
                 : 'border-transparent text-ch-text-secondary hover:text-ch-text-primary'
             }`}
           >
-            Tasks & Follow-ups
+            Follow-ups
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('history')}
-            className={`pb-2 border-b-2 ${
-              activeTab === 'history'
+            onClick={() => setActiveTab('documents')}
+            className={`pb-2 border-b-2 whitespace-nowrap ${
+              activeTab === 'documents'
+                ? 'border-accent text-accent'
+                : 'border-transparent text-ch-text-secondary hover:text-ch-text-primary'
+            }`}
+          >
+            Documents ({partner.documents?.length || 0})
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('activity')}
+            className={`pb-2 border-b-2 whitespace-nowrap ${
+              activeTab === 'activity'
                 ? 'border-accent text-accent'
                 : 'border-transparent text-ch-text-secondary hover:text-ch-text-primary'
             }`}
@@ -284,17 +328,19 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
         </div>
 
         {/* ============================================================
-            TAB CONTENT: OVERVIEW & SCOPE
+            TAB 1: OVERVIEW & SCOPE
            ============================================================ */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
-            {/* Commercial & Mandate Status */}
-            <div className="bg-surface p-3 rounded-lg border border-ch-border space-y-2">
+            {/* Commercial Mandate & Partnership Model */}
+            <div className="bg-surface p-3.5 rounded-lg border border-ch-border space-y-2.5">
               <h5 className="font-bold text-xs text-ch-text-primary">Partnership Status & Mandate</h5>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                 <div>
                   <span className="text-ch-text-secondary">Partnership Model:</span>{' '}
-                  <strong className="text-ch-text-primary">{partner.partnershipInterest || 'Standard Agency Mandate'}</strong>
+                  <strong className="text-ch-text-primary">
+                    {partner.partnershipInterest || 'Standard Agency Mandate'}
+                  </strong>
                 </div>
                 <div>
                   <span className="text-ch-text-secondary">Lead Source:</span>{' '}
@@ -308,11 +354,19 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
                   <span className="text-ch-text-secondary">Active Since:</span>{' '}
                   <strong className="text-ch-text-primary">{formatDate(partner.activeSince)}</strong>
                 </div>
+                <div>
+                  <span className="text-ch-text-secondary">Last Activity:</span>{' '}
+                  <strong className="text-ch-text-primary">{formatDate(partner.lastActivityDate)}</strong>
+                </div>
+                <div>
+                  <span className="text-ch-text-secondary">Next Follow-up:</span>{' '}
+                  <strong className="text-ch-text-primary">{formatDate(partner.nextFollowUpDate)}</strong>
+                </div>
               </div>
             </div>
 
             {/* Marketing Requirements */}
-            <div className="bg-surface p-3 rounded-lg border border-ch-border space-y-2">
+            <div className="bg-surface p-3.5 rounded-lg border border-ch-border space-y-2">
               <h5 className="font-bold text-xs text-ch-text-primary">Marketing & Service Requirements</h5>
               {partner.marketingRequirements && partner.marketingRequirements.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5">
@@ -335,8 +389,8 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
               )}
             </div>
 
-            {/* Background Notes & Log Note */}
-            <div className="bg-surface p-3 rounded-lg border border-ch-border space-y-2">
+            {/* Promoter Background & Quick Note */}
+            <div className="bg-surface p-3.5 rounded-lg border border-ch-border space-y-2">
               <h5 className="font-bold text-xs text-ch-text-primary">Promoter Background & Notes</h5>
               <p className="text-xs text-ch-text-secondary whitespace-pre-wrap">
                 {partner.notes || 'No detailed background notes entered.'}
@@ -345,14 +399,19 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
               {onAddNote && (
                 <form onSubmit={handleNoteSubmit} className="pt-2 border-t border-ch-border space-y-2">
                   <Textarea
-                    placeholder="Log a new conversation, promoter decision, or interaction..."
+                    placeholder="Log a conversation, promoter decision, or interaction..."
                     value={noteText}
                     onChange={(e) => setNoteText(e.target.value)}
                     rows={2}
                     className="text-xs"
                   />
                   <div className="flex justify-end">
-                    <Button type="submit" size="sm" variant="outline" disabled={isSubmittingNote || !noteText.trim()}>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant="outline"
+                      disabled={isSubmittingNote || !noteText.trim()}
+                    >
                       {isSubmittingNote ? 'Saving...' : 'Add Note'}
                     </Button>
                   </div>
@@ -363,7 +422,126 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
         )}
 
         {/* ============================================================
-            TAB CONTENT: PROJECTS & DEVELOPMENTS
+            TAB 2: ORGANIZATION
+           ============================================================ */}
+        {activeTab === 'organization' && (
+          <div className="bg-surface p-4 rounded-lg border border-ch-border space-y-4">
+            <h5 className="font-bold text-xs text-ch-text-primary">Organization Profile</h5>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-ch-text-secondary block">Organization Name:</span>
+                <strong className="text-ch-text-primary text-sm">{partner.companyName}</strong>
+              </div>
+
+              <div>
+                <span className="text-ch-text-secondary block">Business Category:</span>
+                <strong className="text-ch-text-primary">{PARTNER_TYPE_LABELS[partner.partnerType]}</strong>
+              </div>
+
+              <div>
+                <span className="text-ch-text-secondary block">Official Website:</span>
+                {partner.website ? (
+                  <a
+                    href={partner.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent hover:underline break-all"
+                  >
+                    {partner.website}
+                  </a>
+                ) : (
+                  <span className="text-ch-text-tertiary">Not provided</span>
+                )}
+              </div>
+
+              <div>
+                <span className="text-ch-text-secondary block">Primary Location / Territory:</span>
+                <strong className="text-ch-text-primary">{partner.location || 'Maharashtra'}</strong>
+              </div>
+
+              <div className="sm:col-span-2">
+                <span className="text-ch-text-secondary block mb-1">Company Description & Scope:</span>
+                <p className="bg-ch-bg p-2.5 rounded border border-ch-border text-ch-text-primary leading-relaxed">
+                  {partner.notes || 'No detailed organization description entered.'}
+                </p>
+              </div>
+
+              <div className="sm:col-span-2">
+                <span className="text-ch-text-secondary block mb-1">Proposed Partnership Model:</span>
+                <p className="bg-ch-bg p-2.5 rounded border border-ch-border text-ch-text-primary leading-relaxed">
+                  {partner.partnershipInterest || 'Agency representation and marketing mandate.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================
+            TAB 3: CONTACTS
+           ============================================================ */}
+        {activeTab === 'contacts' && (
+          <div className="space-y-3">
+            <div className="bg-surface p-4 rounded-lg border border-ch-border space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h5 className="font-bold text-xs text-ch-text-primary">Primary Relationship Contact</h5>
+                  <p className="text-[11px] text-ch-text-secondary mt-0.5">
+                    Authorized decision maker for mandates and proposals.
+                  </p>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-accent/20 text-accent font-bold text-xs flex items-center justify-center">
+                  {(partner.contactPerson || partner.companyName).charAt(0)}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-ch-border text-xs">
+                <div>
+                  <span className="text-ch-text-secondary block">Contact Name:</span>
+                  <strong className="text-ch-text-primary text-sm">{partner.contactPerson || 'Not provided'}</strong>
+                </div>
+
+                <div>
+                  <span className="text-ch-text-secondary block">Direct Phone:</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <a href={`tel:${partner.phone}`} className="text-accent hover:underline font-semibold">
+                      {partner.phone}
+                    </a>
+                    {cleanPhone && (
+                      <a
+                        href={`https://wa.me/${cleanPhone}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold text-[10px]"
+                      >
+                        WhatsApp
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-ch-text-secondary block">Email Address:</span>
+                  {partner.email ? (
+                    <a href={`mailto:${partner.email}`} className="text-accent hover:underline">
+                      {partner.email}
+                    </a>
+                  ) : (
+                    <span className="text-ch-text-tertiary">Not provided</span>
+                  )}
+                </div>
+
+                <div>
+                  <span className="text-ch-text-secondary block">Account Executive:</span>
+                  <strong className="text-ch-text-primary">{partner.assignedMemberName}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================
+            TAB 4: PROJECTS & PROPERTIES
            ============================================================ */}
         {activeTab === 'projects' && (
           <div className="space-y-3">
@@ -413,7 +591,7 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
         )}
 
         {/* ============================================================
-            TAB CONTENT: MEETINGS & DECISIONS
+            TAB 5: MEETINGS
            ============================================================ */}
         {activeTab === 'meetings' && (
           <div className="space-y-3">
@@ -429,8 +607,8 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
             <div className="bg-surface border border-ch-border rounded-lg p-4 space-y-2">
               <h5 className="font-semibold text-xs text-ch-text-primary">Prelinked Meetings Workflow</h5>
               <p className="text-xs text-ch-text-secondary leading-relaxed">
-                Meetings scheduled for <strong>{partner.companyName}</strong> automatically link this partner and relevant projects.
-                Action items from meetings convert directly into tasks in the shared task register.
+                Meetings scheduled for <strong>{partner.companyName}</strong> automatically link this partner
+                and relevant projects. Action items from meetings convert directly into tasks in the shared task register.
               </p>
               {partner.linkedMeetingIds && partner.linkedMeetingIds.length > 0 ? (
                 <div className="pt-2 border-t border-ch-border space-y-1">
@@ -439,7 +617,10 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {partner.linkedMeetingIds.map((mId) => (
-                      <span key={mId} className="bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-[11px] font-mono">
+                      <span
+                        key={mId}
+                        className="bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-[11px] font-mono"
+                      >
                         {mId}
                       </span>
                     ))}
@@ -453,9 +634,9 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
         )}
 
         {/* ============================================================
-            TAB CONTENT: TASKS & FOLLOW-UPS
+            TAB 6: FOLLOW-UPS & TASKS
            ============================================================ */}
-        {activeTab === 'tasks' && (
+        {activeTab === 'followups' && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-xs text-ch-text-secondary">
@@ -468,7 +649,9 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
 
             {partner.nextFollowUpDate && (
               <div className="bg-ch-bg p-3 rounded-lg border border-ch-border space-y-1">
-                <span className="text-[10px] uppercase font-bold text-ch-text-secondary">Next Follow-up Reminder</span>
+                <span className="text-[10px] uppercase font-bold text-ch-text-secondary">
+                  Next Follow-up Reminder
+                </span>
                 <p className="font-bold text-xs text-ch-text-primary">
                   {formatDate(partner.nextFollowUpDate)}
                 </p>
@@ -481,8 +664,8 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
             <div className="bg-surface border border-ch-border rounded-lg p-4 space-y-2">
               <h5 className="font-semibold text-xs text-ch-text-primary">Linked Task Engine Integration</h5>
               <p className="text-xs text-ch-text-secondary">
-                Tasks created here appear in <strong>My Tasks</strong> for the assigned member, in <strong>All Tasks</strong>,
-                and on the <strong>Team Task Calendar</strong>.
+                Tasks created here appear in <strong>My Tasks</strong> for the assigned member, in{' '}
+                <strong>All Tasks</strong>, and on the <strong>Team Task Calendar</strong>.
               </p>
               {partner.linkedTaskIds && partner.linkedTaskIds.length > 0 ? (
                 <div className="pt-2 border-t border-ch-border space-y-1">
@@ -491,7 +674,10 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {partner.linkedTaskIds.map((tId) => (
-                      <span key={tId} className="bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-[11px] font-mono">
+                      <span
+                        key={tId}
+                        className="bg-ch-bg border border-ch-border px-2 py-0.5 rounded text-[11px] font-mono"
+                      >
                         {tId}
                       </span>
                     ))}
@@ -505,9 +691,55 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
         )}
 
         {/* ============================================================
-            TAB CONTENT: STAGE HISTORY AUDIT TRAIL
+            TAB 7: DOCUMENTS
            ============================================================ */}
-        {activeTab === 'history' && (
+        {activeTab === 'documents' && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-ch-text-secondary">
+                Partnership agreements, proposals, marketing decks, and property brochures.
+              </p>
+            </div>
+
+            {partner.documents && partner.documents.length > 0 ? (
+              <div className="space-y-2">
+                {partner.documents.map((doc, idx) => (
+                  <div
+                    key={doc.id || idx}
+                    className="bg-surface border border-ch-border rounded-lg p-3 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-xs text-ch-text-primary">{doc.name}</p>
+                      <p className="text-[10px] text-ch-text-tertiary">
+                        {doc.size ? `${(doc.size / 1024).toFixed(0)} KB • ` : ''}
+                        {formatDate(doc.createdAt)}
+                      </p>
+                    </div>
+                    {doc.url && (
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-accent hover:underline font-medium"
+                      >
+                        View / Download
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-surface border border-ch-border rounded-lg p-6 text-center text-xs text-ch-text-secondary">
+                No documents uploaded yet. Documents linked from Assets & Storage appear here.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ============================================================
+            TAB 8: STAGE HISTORY & AUDIT TRAIL
+           ============================================================ */}
+        {activeTab === 'activity' && (
           <div className="space-y-3">
             <p className="text-xs text-ch-text-secondary">
               Chronological, immutable audit log of all stage transitions, actors, and notes.
@@ -544,7 +776,8 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
 
                     {sh.followUpLaterDate && (
                       <p className="text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 p-2 rounded border border-purple-200 dark:border-purple-800">
-                        <strong>Next Action Date:</strong> {new Date(sh.followUpLaterDate).toLocaleDateString()}
+                        <strong>Next Action Date:</strong>{' '}
+                        {new Date(sh.followUpLaterDate).toLocaleDateString()}
                       </p>
                     )}
 

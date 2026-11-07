@@ -168,7 +168,7 @@ export function CampaignDetailPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 pb-16">
       {/* 1. Breadcrumbs */}
       <Breadcrumbs
         items={[

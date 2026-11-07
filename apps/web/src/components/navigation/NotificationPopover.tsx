@@ -60,17 +60,17 @@ export const NotificationPopover: React.FC = () => {
   }, [isOpen]);
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="relative inline-block shrink-0" ref={containerRef}>
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="p-2 rounded-control hover:bg-surface-muted text-ch-text-secondary relative min-h-[38px] min-w-[38px] flex items-center justify-center"
+        className="p-1.5 sm:p-2 rounded-control hover:bg-surface-muted text-ch-text-secondary relative min-h-[32px] min-w-[32px] sm:min-h-[38px] sm:min-w-[38px] flex items-center justify-center shrink-0"
         aria-label="Notifications"
         title="Notifications"
       >
         <Bell size={16} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-brand-teal text-white leading-tight">
+          <span className="absolute top-0.5 right-0.5 px-1 py-0.2 rounded-full text-[9px] font-bold bg-brand-teal text-white leading-tight">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
