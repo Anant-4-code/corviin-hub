@@ -60,7 +60,8 @@ export function GoalDetailDrawer({
       open={open}
       onClose={onClose}
       title={goal.title}
-      width="w-full sm:max-w-xl md:max-w-2xl"
+      subtitle={`Strategic Goal • ${goal.status.replace('_', ' ')}`}
+      size="xl"
     >
       <div className="space-y-6 pb-12">
         {/* Header & Status */}

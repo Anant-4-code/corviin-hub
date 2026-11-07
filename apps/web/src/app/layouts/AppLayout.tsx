@@ -15,7 +15,7 @@ export function AppLayout() {
         <TopBar />
         <main
           id="main-content"
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto relative z-0"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           {/* Add bottom padding on mobile for the bottom nav */}

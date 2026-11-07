@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ArrowLeftRight, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ArrowLeftRight, AlertTriangle, Sun, Moon, Monitor } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar } from '@/components/ui/Avatar';
 import { useAppStore } from '@/lib/store';
@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn';
 export function ProfileMenu() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { selectedProfileId, setSelectedProfileId } = useAppStore();
+  const { selectedProfileId, setSelectedProfileId, theme, setTheme } = useAppStore();
   const { data: profiles } = useProfiles();
   const navigate = useNavigate();
 
@@ -40,10 +40,10 @@ export function ProfileMenu() {
         aria-expanded={open}
       >
         <Avatar name={activeProfile.displayName} size="sm" />
-        <span className="hidden sm:block text-sm font-medium text-ch-text-primary max-w-[100px] truncate">
+        <span className="hidden md:block text-sm font-medium text-ch-text-primary max-w-[100px] truncate">
           {activeProfile.displayName}
         </span>
-        <ChevronDown size={12} className="hidden sm:block text-ch-text-muted" />
+        <ChevronDown size={12} className="hidden md:block text-ch-text-muted" />
       </button>
 
       {open && (
@@ -52,6 +52,55 @@ export function ProfileMenu() {
             <p className="text-sm font-semibold text-ch-text-primary">{activeProfile.displayName}</p>
             <p className="text-xs text-ch-text-muted mt-0.5">Acting profile selected</p>
           </div>
+
+          {/* Theme selector for quick access on all devices */}
+          <div className="px-3 py-2 border-b border-ch-border">
+            <p className="text-[11px] font-semibold text-ch-text-secondary uppercase tracking-wider mb-1.5">
+              Theme
+            </p>
+            <div className="grid grid-cols-3 gap-1 bg-surface-muted p-0.5 rounded-control">
+              <button
+                type="button"
+                onClick={() => setTheme('light')}
+                className={cn(
+                  'flex items-center justify-center gap-1 py-1 text-xs rounded transition-none',
+                  theme === 'light'
+                    ? 'bg-surface font-semibold text-accent shadow-xs'
+                    : 'text-ch-text-secondary hover:text-ch-text-primary',
+                )}
+                aria-label="Light mode"
+              >
+                <Sun size={12} /> Light
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('dark')}
+                className={cn(
+                  'flex items-center justify-center gap-1 py-1 text-xs rounded transition-none',
+                  theme === 'dark'
+                    ? 'bg-surface font-semibold text-accent shadow-xs'
+                    : 'text-ch-text-secondary hover:text-ch-text-primary',
+                )}
+                aria-label="Dark mode"
+              >
+                <Moon size={12} /> Dark
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('system')}
+                className={cn(
+                  'flex items-center justify-center gap-1 py-1 text-xs rounded transition-none',
+                  theme === 'system'
+                    ? 'bg-surface font-semibold text-accent shadow-xs'
+                    : 'text-ch-text-secondary hover:text-ch-text-primary',
+                )}
+                aria-label="System theme"
+              >
+                <Monitor size={12} /> Auto
+              </button>
+            </div>
+          </div>
+
           <div className="p-2 border-b border-ch-border">
             <div className="flex items-start gap-2 px-2 py-1.5 rounded bg-warning/10 border border-warning/20">
               <AlertTriangle size={12} className="text-warning shrink-0 mt-0.5" />

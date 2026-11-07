@@ -104,7 +104,8 @@ export const BuyerRecordDetailDrawer: React.FC<BuyerRecordDetailDrawerProps> = (
       open={isOpen}
       onClose={onClose}
       title={displayName}
-      width="w-full sm:w-[560px] md:w-[680px]"
+      subtitle={b.phone ? `Phone: ${b.phone}` : undefined}
+      size="xl"
     >
       <div className="space-y-5 pb-8 text-xs text-ch-text-primary">
         {/* ============================================================

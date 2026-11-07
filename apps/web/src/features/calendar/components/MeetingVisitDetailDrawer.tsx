@@ -102,7 +102,39 @@ export function MeetingVisitDetailDrawer({
       open={open}
       onClose={onClose}
       title={isSiteVisit ? 'Property Site Visit Detail' : 'Meeting Details'}
-      width="w-full max-w-lg"
+      subtitle={item.title}
+      size="lg"
+      footer={
+        <div className="w-full flex flex-wrap items-center justify-between gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onReschedule(item)}
+            className="text-xs gap-1.5 text-warning border-warning/40 hover:bg-warning/10"
+          >
+            <RotateCcw size={13} />
+            <span>Reschedule</span>
+          </Button>
+
+          <div className="flex items-center gap-2">
+            {item.status !== MeetingStatus.COMPLETED && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onStatusUpdate(MeetingStatus.COMPLETED)}
+                className="text-xs gap-1.5 text-success border-success/40 hover:bg-success/10"
+              >
+                <CheckCircle2 size={13} />
+                <span>Mark Completed</span>
+              </Button>
+            )}
+
+            <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
+              Close
+            </Button>
+          </div>
+        </div>
+      }
     >
       <div className="space-y-6 text-xs text-ch-text-primary">
         {/* Title & Badges */}
@@ -388,37 +420,6 @@ export function MeetingVisitDetailDrawer({
             </div>
           </div>
         )}
-
-        {/* Footer Actions */}
-        <div className="pt-4 border-t border-ch-border flex flex-wrap items-center justify-between gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onReschedule(item)}
-            className="text-xs gap-1.5 text-warning border-warning/40 hover:bg-warning/10"
-          >
-            <RotateCcw size={13} />
-            <span>Reschedule</span>
-          </Button>
-
-          <div className="flex items-center gap-2">
-            {item.status !== MeetingStatus.COMPLETED && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onStatusUpdate(MeetingStatus.COMPLETED)}
-                className="text-xs gap-1.5 text-success border-success/40 hover:bg-success/10"
-              >
-                <CheckCircle2 size={13} />
-                <span>Mark Completed</span>
-              </Button>
-            )}
-
-            <Button variant="ghost" size="sm" onClick={onClose} className="text-xs">
-              Close
-            </Button>
-          </div>
-        </div>
       </div>
     </Drawer>
   );

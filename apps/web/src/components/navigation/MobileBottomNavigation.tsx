@@ -1,12 +1,15 @@
 import { NavLink } from 'react-router-dom';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Sun, Moon, Monitor } from 'lucide-react';
 import { useState } from 'react';
 import { mobileBottomNav, mobileMoreItems } from './navigation-config';
 import { BottomSheet } from '@/components/ui/Drawer';
+import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/cn';
 
 export function MobileBottomNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const theme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
 
   return (
     <>
@@ -48,28 +51,75 @@ export function MobileBottomNavigation() {
       </nav>
 
       <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
-        <div className="flex flex-col gap-1">
-          {mobileMoreItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => setMoreOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-3 rounded-control text-sm font-medium',
-                    isActive
-                      ? 'bg-surface-selected text-accent'
-                      : 'text-ch-text-primary hover:bg-surface-muted',
-                  )
-                }
+        <div className="flex flex-col gap-3">
+          {/* Quick theme selector */}
+          <div className="p-2 bg-surface-muted/60 rounded-control border border-ch-border">
+            <p className="text-[11px] font-semibold text-ch-text-secondary uppercase tracking-wider mb-2">
+              Appearance
+            </p>
+            <div className="grid grid-cols-3 gap-1 bg-surface p-1 rounded-control border border-ch-border">
+              <button
+                type="button"
+                onClick={() => setTheme('light')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 py-1.5 text-xs rounded font-medium transition-none',
+                  theme === 'light'
+                    ? 'bg-surface-selected text-accent font-bold'
+                    : 'text-ch-text-secondary hover:text-ch-text-primary',
+                )}
               >
-                <Icon size={18} />
-                {item.label}
-              </NavLink>
-            );
-          })}
+                <Sun size={14} /> Light
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('dark')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 py-1.5 text-xs rounded font-medium transition-none',
+                  theme === 'dark'
+                    ? 'bg-surface-selected text-accent font-bold'
+                    : 'text-ch-text-secondary hover:text-ch-text-primary',
+                )}
+              >
+                <Moon size={14} /> Dark
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('system')}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 py-1.5 text-xs rounded font-medium transition-none',
+                  theme === 'system'
+                    ? 'bg-surface-selected text-accent font-bold'
+                    : 'text-ch-text-secondary hover:text-ch-text-primary',
+                )}
+              >
+                <Monitor size={14} /> Auto
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            {mobileMoreItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMoreOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-3 py-3 rounded-control text-sm font-medium',
+                      isActive
+                        ? 'bg-surface-selected text-accent'
+                        : 'text-ch-text-primary hover:bg-surface-muted',
+                    )
+                  }
+                >
+                  <Icon size={18} />
+                  {item.label}
+                </NavLink>
+              );
+            })}
+          </div>
         </div>
       </BottomSheet>
     </>

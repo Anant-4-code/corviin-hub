@@ -24,6 +24,10 @@ export default {
           DEFAULT: 'var(--color-accent)',
           foreground: 'var(--color-accent-foreground)',
         },
+        'ch-primary': {
+          DEFAULT: 'var(--color-accent)',
+          hover: 'var(--color-accent)',
+        },
         'ch-border': {
           DEFAULT: 'var(--color-border)',
           strong: 'var(--color-border-strong)',

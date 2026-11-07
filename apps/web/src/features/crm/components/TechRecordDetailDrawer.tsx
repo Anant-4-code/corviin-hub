@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   ExternalLink,
 } from 'lucide-react';
+import { Drawer } from '@/components/ui/Drawer';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -106,51 +107,45 @@ export function TechRecordDetailDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex justify-end bg-black/40">
-      <div className="w-full max-w-2xl bg-surface border-l border-ch-border flex flex-col h-full shadow-2xl">
+    <Drawer
+      open={isOpen}
+      onClose={onClose}
+      title={record.company}
+      subtitle={
+        <span className="flex items-center gap-1.5 text-xs text-ch-text-secondary">
+          <User className="w-3.5 h-3.5 text-ch-text-muted" />
+          <span>{record.name}</span>
+          {record.businessType && <span>• {record.businessType}</span>}
+        </span>
+      }
+      size="xl"
+    >
+      <div className="space-y-5 pb-8 text-xs text-ch-text-primary">
         {/* ======================================================== */}
-        {/* HEADER: Title, Category, Stage & Close                  */}
+        {/* HEADER BADGES & QUICK CONTACT                           */}
         {/* ======================================================== */}
-        <div className="p-4 border-b border-ch-border bg-surface-raised space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`px-2 py-0.5 text-[10px] font-bold border ${
-                    TECH_CATEGORY_COLORS[record.category] || 'bg-surface border-ch-border'
-                  }`}
-                >
-                  {TECH_CATEGORY_LABELS[record.category]}
-                </span>
-                <span
-                  className={`px-2 py-0.5 text-[10px] font-bold border ${
-                    TECH_STAGE_COLORS[record.stage] || 'bg-surface border-ch-border'
-                  }`}
-                >
-                  {TECH_STAGE_LABELS[record.stage]}
-                </span>
-              </div>
-              <h2 className="text-base font-bold text-ch-text-primary mt-1">
-                {record.company}
-              </h2>
-              <div className="text-xs text-ch-text-secondary flex items-center gap-1.5 mt-0.5">
-                <User className="w-3.5 h-3.5 text-ch-text-muted" />
-                <span>{record.name}</span>
-                {record.businessType && <span>• {record.businessType}</span>}
-              </div>
+        <div className="p-3.5 border border-ch-border bg-surface-muted/40 rounded-lg space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={`px-2.5 py-0.5 text-xs font-bold border rounded ${
+                  TECH_CATEGORY_COLORS[record.category] || 'bg-surface border-ch-border'
+                }`}
+              >
+                {TECH_CATEGORY_LABELS[record.category]}
+              </span>
+              <span
+                className={`px-2.5 py-0.5 text-xs font-bold border rounded ${
+                  TECH_STAGE_COLORS[record.stage] || 'bg-surface border-ch-border'
+                }`}
+              >
+                {TECH_STAGE_LABELS[record.stage]}
+              </span>
             </div>
-
-            <button
-              onClick={onClose}
-              className="p-1 text-ch-text-muted hover:text-ch-text-primary border border-transparent hover:border-ch-border"
-              title="Close drawer"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
 
           {/* Quick Action Bar (Section 7) */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             {record.phone && (
               <a
                 href={`tel:${record.phone}`}
@@ -806,6 +801,6 @@ export function TechRecordDetailDrawer({
           )}
         </div>
       </div>
-    </div>
+    </Drawer>
   );
 }

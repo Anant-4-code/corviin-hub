@@ -173,7 +173,7 @@ export function AssetDetailDrawer({
   const isAudio = asset.typeGroup === AssetTypeGroup.AUDIO;
 
   return (
-    <Drawer open={isOpen} onClose={onClose} title="Asset Details" width="w-full sm:w-[540px]">
+    <Drawer open={isOpen} onClose={onClose} title="Asset Details" subtitle={asset.title} size="xl">
       <div className="space-y-4">
         {/* Header Preview & Quick Action Bar */}
         <div className="p-4 bg-surface-hover/40 border border-ch-border space-y-3">

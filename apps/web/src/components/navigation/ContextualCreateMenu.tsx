@@ -317,28 +317,28 @@ export function ContextualCreateMenu({ externalOpenType, onExternalClose }: Cont
           onClick={() => setMenuOpen((prev) => !prev)}
           className={cn(
             'inline-flex items-center justify-center gap-1 sm:gap-1.5 p-1.5 sm:px-2.5 sm:py-1.5 rounded-control text-xs font-semibold shrink-0',
-            'bg-ch-primary text-white hover:bg-ch-primary-hover shadow-sm min-h-[32px] sm:min-h-[36px]',
+            'bg-accent text-accent-foreground border border-accent hover:opacity-90 shadow-sm min-h-[32px] min-w-[32px] sm:min-h-[36px]',
           )}
           aria-expanded={menuOpen}
           aria-haspopup="true"
           aria-label="Contextual Create Menu"
         >
-          <Plus size={16} />
-          <span className="hidden sm:inline">Create</span>
-          <ChevronDown size={14} className="hidden sm:inline opacity-80" />
+          <Plus size={16} className="shrink-0" />
+          <span className="hidden sm:inline font-semibold">Create</span>
+          <ChevronDown size={14} className="hidden sm:inline opacity-80 shrink-0" />
         </button>
 
         {/* Dropdown Menu */}
         {menuOpen && (
           <div
-            className="absolute right-0 mt-2 w-72 sm:w-80 rounded-lg bg-surface border border-ch-border shadow-xl z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-[calc(100vw-24px)] max-w-xs sm:w-80 rounded-lg bg-surface border border-ch-border shadow-xl z-50 overflow-hidden"
             role="menu"
             aria-label="Create options"
           >
             {/* Header: Context indication */}
             <div className="px-3.5 py-2.5 bg-surface-muted/60 border-b border-ch-border flex items-center justify-between">
               <span className="text-[11px] font-semibold text-ch-text-secondary uppercase tracking-wider flex items-center gap-1">
-                <Sparkles size={12} className="text-ch-primary" /> Contextual Actions
+                <Sparkles size={12} className="text-accent" /> Contextual Actions
               </span>
               <span className="text-[10px] text-ch-text-muted">
                 {currentWorkspace?.slug || 'workspace'}
@@ -357,7 +357,7 @@ export function ContextualCreateMenu({ externalOpenType, onExternalClose }: Cont
                       onClick={() => handleOpenAction(action.type)}
                       className={cn(
                         'w-full text-left p-2.5 rounded-control flex items-start gap-2.5 text-xs hover:bg-surface-muted min-h-[44px]',
-                        action.isPrimary && 'bg-ch-primary/5 border border-ch-primary/30',
+                        action.isPrimary && 'bg-accent/10 border border-accent/30',
                       )}
                       role="menuitem"
                     >
@@ -365,17 +365,17 @@ export function ContextualCreateMenu({ externalOpenType, onExternalClose }: Cont
                         className={cn(
                           'p-1.5 rounded-control mt-0.5 shrink-0',
                           action.isPrimary
-                            ? 'bg-ch-primary text-white'
+                            ? 'bg-accent text-accent-foreground'
                             : 'bg-surface-muted text-ch-text-secondary',
                         )}
                       >
                         <Icon size={14} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-ch-text flex items-center justify-between">
+                        <div className="font-semibold text-ch-text-primary flex items-center justify-between">
                           <span>{action.label}</span>
                           {action.isPrimary && (
-                            <span className="text-[10px] text-ch-primary font-medium">
+                            <span className="text-[10px] text-accent font-medium">
                               Suggested
                             </span>
                           )}
@@ -393,7 +393,7 @@ export function ContextualCreateMenu({ externalOpenType, onExternalClose }: Cont
             <div className="p-1.5 border-t border-ch-border bg-surface-muted/30">
               <button
                 onClick={() => setShowAllActions((prev) => !prev)}
-                className="w-full text-center py-1.5 text-[11px] font-medium text-ch-primary hover:underline"
+                className="w-full text-center py-1.5 text-[11px] font-medium text-accent hover:underline"
               >
                 {showAllActions ? 'Show Suggested Only' : 'View All Workspace Actions'}
               </button>

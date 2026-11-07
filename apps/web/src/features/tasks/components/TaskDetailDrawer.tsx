@@ -101,7 +101,8 @@ export function TaskDetailDrawer({
       open={open}
       onClose={onClose}
       title={task.title}
-      width="w-full sm:max-w-xl md:max-w-2xl"
+      subtitle={`Task ID: ${task.id.slice(0, 8)}`}
+      size="xl"
     >
       <div className="space-y-6 pb-12">
         {/* SECTION 1: HEADER & PRIMARY WORK ACTIONS */}

@@ -78,7 +78,7 @@ export const NotificationPopover: React.FC = () => {
 
       {/* Popover Dropdown (Strictly Zero Animation) */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-lg bg-surface border border-border shadow-2xl z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-[calc(100vw-24px)] max-w-sm sm:w-96 rounded-lg bg-surface border border-ch-border shadow-2xl z-50 overflow-hidden">
           <div className="p-3 border-b border-border flex items-center justify-between bg-surface-muted">
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-primary">Notifications</span>

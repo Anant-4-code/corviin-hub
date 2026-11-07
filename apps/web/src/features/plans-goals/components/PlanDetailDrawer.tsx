@@ -78,7 +78,8 @@ export function PlanDetailDrawer({
       open={open}
       onClose={onClose}
       title={plan.title}
-      width="w-full sm:max-w-xl md:max-w-2xl"
+      subtitle={`Operational Plan • ${plan.status}`}
+      size="xl"
     >
       <div className="space-y-6 pb-12">
         {/* Header & Status */}

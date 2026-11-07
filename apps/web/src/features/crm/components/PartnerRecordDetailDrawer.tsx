@@ -91,7 +91,8 @@ export const PartnerRecordDetailDrawer: React.FC<PartnerRecordDetailDrawerProps>
       open={isOpen}
       onClose={onClose}
       title={partner.companyName}
-      width="w-full sm:w-[580px] md:w-[720px]"
+      subtitle={partner.contactPerson ? `Contact: ${partner.contactPerson}` : undefined}
+      size="xl"
     >
       <div className="space-y-5 pb-8 text-xs text-ch-text-primary">
         {/* ============================================================
