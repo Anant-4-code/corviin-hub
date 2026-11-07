@@ -12,7 +12,7 @@
     "dev:web": "npm -w apps/web run dev",
     "dev:api": "npm -w apps/api run dev",
     "build": "npm run build:shared && npm run build:prisma && npm run build:web && npm run build:api",
-    "build:prisma": "node scripts/ensure-prisma-client.js && npm -w apps/api run prisma:generate && node scripts/sync-prisma-client.js",
+    "build:prisma": "node scripts/ensure-prisma-client.js && npx --prefix apps/api prisma generate --config=apps/api/prisma.config.ts && node scripts/sync-prisma-client.js",
     "postinstall": "node scripts/ensure-prisma-client.js",
     "build:shared": "npm -w packages/shared run build",
     "build:web": "npm -w apps/web run build",

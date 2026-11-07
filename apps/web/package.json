@@ -13,6 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@capacitor/android": "^6.2.3",
     "@corviin-hub/shared": "*",
     "@hookform/resolvers": "^3.9.0",
     "@tanstack/react-query": "^5.60.0",
