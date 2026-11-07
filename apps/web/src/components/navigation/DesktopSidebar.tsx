@@ -96,16 +96,16 @@ export function DesktopSidebar() {
       {/* Logo area */}
       <div className={cn('flex items-center border-b border-ch-border h-14 shrink-0', sidebarCollapsed ? 'justify-center px-2' : 'px-4')}>
         {!sidebarCollapsed && (
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold shrink-0">
-              CH
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-surface border border-ch-border p-1 flex items-center justify-center shrink-0 shadow-xs">
+              <img src="/logo-square.png" alt="CORVIIN Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-semibold text-sm text-ch-text-primary truncate">CORVIIN HUB</span>
+            <span className="font-bold text-sm tracking-tight text-ch-text-primary truncate">CORVIIN HUB</span>
           </div>
         )}
         {sidebarCollapsed && (
-          <div className="w-7 h-7 rounded bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold">
-            CH
+          <div className="w-8 h-8 rounded-lg bg-surface border border-ch-border p-1 flex items-center justify-center shadow-xs">
+            <img src="/logo-square.png" alt="CORVIIN Logo" className="w-full h-full object-contain" />
           </div>
         )}
       </div>

@@ -77,8 +77,8 @@ export function SelectProfilePage() {
       <header className="w-full border-b border-[#DCE4F0] dark:border-[#2B3B54] bg-[#FFFFFF] dark:bg-[#17243A] sticky top-0 z-20 transition-none">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#2563EB] dark:bg-[#60A5FA] text-white dark:text-[#0C1424] font-bold text-sm tracking-wider select-none shadow-sm">
-              CH
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-surface border border-ch-border p-1.5 shadow-xs">
+              <img src="/logo-square.png" alt="CORVIIN Logo" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-base tracking-tight text-[#172B4D] dark:text-[#F1F5F9] leading-tight">
