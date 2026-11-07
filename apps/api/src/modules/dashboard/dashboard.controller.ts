@@ -1,5 +1,5 @@
-import { Controller, Get, Headers } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiHeader } from '@nestjs/swagger';
+import { Controller, Get, Headers, Query } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiHeader, ApiQuery } from '@nestjs/swagger';
 import { DashboardService } from './dashboard.service';
 
 @ApiTags('Dashboard')
@@ -9,9 +9,13 @@ export class DashboardController {
 
   @Get('summary')
   @ApiOperation({ summary: 'Get workspace dashboard metrics and aggregated KPIs' })
-  @ApiHeader({ name: 'x-workspace-id', required: true, description: 'Active workspace ID' })
-  async getSummary(@Headers('x-workspace-id') workspaceId: string) {
-    const wsId = workspaceId || 'ws-tech-0001-0000-000000000001';
+  @ApiHeader({ name: 'x-workspace-id', required: false, description: 'Active workspace ID' })
+  @ApiQuery({ name: 'workspaceId', required: false, description: 'Active workspace ID' })
+  async getSummary(
+    @Headers('x-workspace-id') headerWsId?: string,
+    @Query('workspaceId') queryWsId?: string,
+  ) {
+    const wsId = headerWsId || queryWsId || 'ws-tech-0001-0000-000000000001';
     const summary = await this.dashboardService.getSummary(wsId);
     return {
       data: summary,
@@ -22,8 +26,12 @@ export class DashboardController {
   @Get()
   @ApiOperation({ summary: 'Dashboard overview route' })
   @ApiHeader({ name: 'x-workspace-id', required: false })
-  async getOverview(@Headers('x-workspace-id') workspaceId: string) {
-    const wsId = workspaceId || 'ws-tech-0001-0000-000000000001';
+  @ApiQuery({ name: 'workspaceId', required: false })
+  async getOverview(
+    @Headers('x-workspace-id') headerWsId?: string,
+    @Query('workspaceId') queryWsId?: string,
+  ) {
+    const wsId = headerWsId || queryWsId || 'ws-tech-0001-0000-000000000001';
     const summary = await this.dashboardService.getSummary(wsId);
     return {
       data: summary,

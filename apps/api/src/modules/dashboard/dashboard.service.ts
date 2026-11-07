@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface DashboardSummary {
@@ -18,90 +18,96 @@ export interface DashboardSummary {
 
 @Injectable()
 export class DashboardService {
+  private readonly logger = new Logger(DashboardService.name);
+
   constructor(@Optional() private readonly prisma?: PrismaService) { }
 
   async getSummary(workspaceId: string): Promise<DashboardSummary> {
     const now = new Date();
 
     if (this.prisma?.getConnectionStatus()) {
-      const [
-        openTasks,
-        overdueTasks,
-        completedTasks,
-        activeCampaigns,
-        meetings,
-        assets,
-        techLeads,
-        partners,
-        buyers,
-      ] = await Promise.all([
-        this.prisma.task.count({
-          where: {
-            workspaceId,
-            status: { notIn: ['COMPLETED', 'CANCELLED'] },
-          },
-        }),
-        this.prisma.task.count({
-          where: {
-            workspaceId,
-            status: { notIn: ['COMPLETED', 'CANCELLED'] },
-            deadline: { lt: now },
-          },
-        }),
-        this.prisma.task.count({
-          where: {
-            workspaceId,
-            status: 'COMPLETED',
-          },
-        }),
-        this.prisma.campaign.count({
-          where: {
-            workspaceId,
-            stage: { not: 'POSTING_COMPLETION' },
-          },
-        }),
-        this.prisma.meeting.count({
-          where: {
-            workspaceId,
-            startTime: { gte: now },
-            status: { not: 'CANCELLED' },
-          },
-        }),
-        this.prisma.asset.findMany({
-          where: { workspaceId },
-          select: { sizeBytes: true },
-        }),
-        this.prisma.crmTechRecord.count({
-          where: { workspaceId },
-        }),
-        this.prisma.crmPartnerRecord.count({
-          where: { workspaceId },
-        }),
-        this.prisma.crmBuyerRecord.count({
-          where: { workspaceId },
-        }),
-      ]);
+      try {
+        const [
+          openTasks,
+          overdueTasks,
+          completedTasks,
+          activeCampaigns,
+          meetings,
+          assets,
+          techLeads,
+          partners,
+          buyers,
+        ] = await Promise.all([
+          this.prisma.task.count({
+            where: {
+              workspaceId,
+              status: { notIn: ['COMPLETED', 'CANCELLED'] },
+            },
+          }),
+          this.prisma.task.count({
+            where: {
+              workspaceId,
+              status: { notIn: ['COMPLETED', 'CANCELLED'] },
+              deadline: { lt: now },
+            },
+          }),
+          this.prisma.task.count({
+            where: {
+              workspaceId,
+              status: 'COMPLETED',
+            },
+          }),
+          this.prisma.campaign.count({
+            where: {
+              workspaceId,
+              stage: { not: 'POSTING_COMPLETION' },
+            },
+          }),
+          this.prisma.meeting.count({
+            where: {
+              workspaceId,
+              startTime: { gte: now },
+              status: { not: 'CANCELLED' },
+            },
+          }),
+          this.prisma.asset.findMany({
+            where: { workspaceId },
+            select: { sizeBytes: true },
+          }),
+          this.prisma.crmTechRecord.count({
+            where: { workspaceId },
+          }),
+          this.prisma.crmPartnerRecord.count({
+            where: { workspaceId },
+          }),
+          this.prisma.crmBuyerRecord.count({
+            where: { workspaceId },
+          }),
+        ]);
 
-      const storageBytesUsed = assets.reduce(
-        (sum: number, a: { sizeBytes: number | null }) => sum + (a.sizeBytes || 0),
-        0,
-      );
-      const crmLeadsCount = techLeads + partners + buyers;
+        const storageBytesUsed = assets.reduce(
+          (sum: number, a: { sizeBytes: number | null }) => sum + (a.sizeBytes || 0),
+          0,
+        );
+        const crmLeadsCount = techLeads + partners + buyers;
 
-      return {
-        workspaceId,
-        metrics: {
-          openTasksCount: openTasks,
-          overdueTasksCount: overdueTasks,
-          completedTasksCount: completedTasks,
-          activeCampaignsCount: activeCampaigns,
-          crmLeadsCount,
-          upcomingMeetingsCount: meetings,
-          totalAssetsCount: assets.length,
-          storageBytesUsed,
-        },
-        timestamp: now.toISOString(),
-      };
+        return {
+          workspaceId,
+          metrics: {
+            openTasksCount: openTasks,
+            overdueTasksCount: overdueTasks,
+            completedTasksCount: completedTasks,
+            activeCampaignsCount: activeCampaigns,
+            crmLeadsCount,
+            upcomingMeetingsCount: meetings,
+            totalAssetsCount: assets.length,
+            storageBytesUsed,
+          },
+          timestamp: now.toISOString(),
+        };
+      } catch (err: any) {
+        this.logger.error(`Database query failed in DashboardService: ${err.message}`);
+      }
     }
 
     // Offline / test fallback
