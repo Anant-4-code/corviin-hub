@@ -54,49 +54,50 @@ export function TopBar() {
 
   return (
     <>
-      <header className="h-14 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 border-b border-ch-border bg-surface shrink-0 sticky top-0 z-20">
-        {/* Sidebar toggle (desktop only) */}
-        <button
-          onClick={toggleSidebar}
-          className="hidden lg:flex p-1.5 rounded-control hover:bg-surface-muted text-ch-text-secondary min-h-[36px] min-w-[36px] items-center justify-center"
-          aria-label="Toggle sidebar"
-        >
-          <Menu size={18} />
-        </button>
+      <header className="h-14 flex items-center justify-between gap-1 sm:gap-3 px-2 sm:px-4 border-b border-ch-border bg-surface shrink-0 sticky top-0 z-20 w-full max-w-full overflow-hidden">
+        {/* Left section: Sidebar toggle + Workspace Switcher + Search */}
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+          {/* Sidebar toggle (desktop only) */}
+          <button
+            onClick={toggleSidebar}
+            className="hidden lg:flex p-1.5 rounded-control hover:bg-surface-muted text-ch-text-secondary min-h-[36px] min-w-[36px] items-center justify-center shrink-0"
+            aria-label="Toggle sidebar"
+          >
+            <Menu size={18} />
+          </button>
 
-        {/* Workspace switcher */}
-        <WorkspaceSwitcher />
+          {/* Workspace switcher */}
+          <WorkspaceSwitcher />
 
-        {/* Desktop Search Trigger bar */}
-        <div className="flex-1 max-w-80 hidden sm:block">
+          {/* Mobile Search Icon Button */}
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="w-full flex items-center justify-between px-3 py-1.5 rounded-control border border-ch-border bg-surface-muted/50 text-xs text-ch-text-muted hover:border-ch-border-hover hover:bg-surface-muted transition-none min-h-[36px]"
-            aria-label="Open global search (Ctrl+K)"
+            className="sm:hidden p-1.5 rounded-control text-ch-text-secondary hover:bg-surface-muted min-h-[32px] min-w-[32px] flex items-center justify-center shrink-0"
+            aria-label="Open mobile search"
           >
-            <span className="flex items-center gap-2">
-              <Search size={14} className="text-ch-text-secondary" />
-              <span>Search records…</span>
-            </span>
-            <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono border border-ch-border rounded bg-surface text-ch-text-secondary">
-              Ctrl K
-            </kbd>
+            <Search size={16} />
           </button>
+
+          {/* Desktop Search Trigger bar */}
+          <div className="w-56 md:w-72 lg:w-80 hidden sm:block">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="w-full flex items-center justify-between px-3 py-1.5 rounded-control border border-ch-border bg-surface-muted/50 text-xs text-ch-text-muted hover:border-ch-border-hover hover:bg-surface-muted transition-none min-h-[36px]"
+              aria-label="Open global search (Ctrl+K)"
+            >
+              <span className="flex items-center gap-2">
+                <Search size={14} className="text-ch-text-secondary" />
+                <span>Search records…</span>
+              </span>
+              <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono border border-ch-border rounded bg-surface text-ch-text-secondary">
+                Ctrl K
+              </kbd>
+            </button>
+          </div>
         </div>
 
-        {/* Mobile Search Icon Button */}
-        <button
-          onClick={() => setIsSearchOpen(true)}
-          className="sm:hidden p-2 rounded-control text-ch-text-secondary hover:bg-surface-muted min-h-[44px] min-w-[44px] flex items-center justify-center"
-          aria-label="Open mobile search"
-        >
-          <Search size={18} />
-        </button>
-
-        <div className="flex-1 lg:hidden" />
-
         {/* Right actions: Contextual Create, Theme, Notifications, Profile */}
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 pl-1">
           <ContextualCreateMenu
             externalOpenType={externalCreateType}
             onExternalClose={() => setExternalCreateType(null)}
