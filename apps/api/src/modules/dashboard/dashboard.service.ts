@@ -18,7 +18,7 @@ export interface DashboardSummary {
 
 @Injectable()
 export class DashboardService {
-  constructor(@Optional() private readonly prisma?: PrismaService) {}
+  constructor(@Optional() private readonly prisma?: PrismaService) { }
 
   async getSummary(workspaceId: string): Promise<DashboardSummary> {
     const now = new Date();
