@@ -56,7 +56,7 @@ export function TopBar() {
     <>
       <header className="h-14 flex items-center justify-between gap-1 sm:gap-2 px-2 sm:px-4 border-b border-ch-border bg-surface shrink-0 sticky top-0 z-40 w-full max-w-full">
         {/* Left section: Sidebar toggle + Workspace Switcher + Search */}
-        <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-shrink">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-shrink overflow-hidden">
           {/* Sidebar toggle (desktop only) */}
           <button
             onClick={toggleSidebar}

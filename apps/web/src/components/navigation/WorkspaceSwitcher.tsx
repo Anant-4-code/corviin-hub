@@ -32,7 +32,7 @@ export function WorkspaceSwitcher() {
   }
 
   return (
-    <div ref={ref} className="relative shrink-0 min-w-0 max-w-[110px] xs:max-w-[135px] sm:max-w-[180px] md:max-w-[200px]">
+    <div ref={ref} className="relative shrink min-w-[70px] max-w-[110px] xs:max-w-[135px] sm:max-w-[180px] md:max-w-[200px]">
       <button
         onClick={() => setOpen((p) => !p)}
         className={cn(

@@ -310,7 +310,7 @@ export function GlobalSearchModal({ isOpen, onClose, onOpenCreate }: GlobalSearc
                   className={cn(
                     'px-2.5 py-1 rounded-control whitespace-nowrap flex items-center gap-1.5 font-medium border min-h-[32px]',
                     isActive
-                      ? 'bg-ch-primary text-white border-ch-primary'
+                      ? 'bg-accent text-accent-foreground border-accent'
                       : 'bg-surface-muted text-ch-text-secondary border-ch-border hover:bg-surface-elevated',
                   )}
                 >
@@ -439,7 +439,7 @@ export function GlobalSearchModal({ isOpen, onClose, onOpenCreate }: GlobalSearc
                     className={cn(
                       'w-full text-left p-3 rounded-control flex items-start gap-3 border text-sm min-h-[44px]',
                       isSelected
-                        ? 'bg-ch-primary/10 border-ch-primary'
+                        ? 'bg-accent/10 border-accent'
                         : 'border-transparent hover:bg-surface-muted',
                     )}
                     role="option"

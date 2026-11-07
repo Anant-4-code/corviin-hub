@@ -168,7 +168,7 @@ export function CampaignDetailPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-4 pb-16">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 pb-20">
       {/* 1. Breadcrumbs */}
       <Breadcrumbs
         items={[
@@ -178,64 +178,66 @@ export function CampaignDetailPage() {
       />
 
       {/* 2. Campaign Header Card */}
-      <div className="p-4 bg-surface border border-ch-border space-y-3">
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div className="space-y-1.5 flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="primary">{campaign.stage}</Badge>
-              <Badge variant="outline">{campaign.status}</Badge>
-              <span className="font-mono text-[11px] font-semibold text-ch-text-secondary uppercase">
-                {campaign.platform}
-              </span>
-              <span className="text-[11px] text-ch-text-muted capitalize">
-                Priority: {campaign.priority?.toLowerCase()}
-              </span>
-            </div>
+      <div className="p-5 sm:p-6 bg-surface border border-ch-border rounded-lg shadow-xs space-y-4">
+        {/* Top badge strip: stage, status, platform, priority */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="primary">{campaign.stage}</Badge>
+          <Badge variant="outline">{campaign.status}</Badge>
+          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-surface-muted border border-ch-border text-ch-text-secondary uppercase">
+            {campaign.platform}
+          </span>
+          <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-surface-muted border border-ch-border text-ch-text-secondary capitalize">
+            Priority: {campaign.priority?.toLowerCase()}
+          </span>
+        </div>
 
-            <h1 className="text-xl font-bold text-ch-text-primary leading-tight">
+        {/* Two-column layout: Left details vs Right primary action */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+          <div className="space-y-3 flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-ch-text-primary leading-tight break-words">
               {campaign.title}
             </h1>
 
-            <p className="text-xs text-ch-text-secondary max-w-3xl leading-relaxed">
+            <p className="text-sm text-ch-text-secondary max-w-3xl leading-relaxed">
               {campaign.description}
             </p>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ch-text-muted pt-1">
-              <div className="flex items-center gap-1 font-medium text-ch-text-primary">
-                <User size={13} className="text-primary" />
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ch-text-muted pt-1">
+              <div className="flex items-center gap-1.5 font-medium text-ch-text-primary">
+                <User size={14} className="text-accent" />
                 <span>Owner: {getMemberName(campaign.ownerId)}</span>
               </div>
-              <div className="flex items-center gap-1 font-mono">
-                <Calendar size={13} />
+              <div className="flex items-center gap-1.5 font-mono">
+                <Calendar size={14} className="text-ch-text-muted" />
                 <span>Target: {new Date(campaign.targetPublishDate).toLocaleDateString()}</span>
               </div>
               {campaign.actualPublishDate && (
-                <div className="flex items-center gap-1 font-mono text-success font-semibold">
-                  <CheckCircle2 size={13} />
+                <div className="flex items-center gap-1.5 font-mono text-success font-semibold">
+                  <CheckCircle2 size={14} />
                   <span>Published: {new Date(campaign.actualPublishDate).toLocaleDateString()}</span>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Primary Action: Advance Stage */}
-          <div className="flex sm:flex-col items-stretch sm:items-end gap-2 shrink-0">
+          {/* Right Action Block: Advance Stage + Archive */}
+          <div className="flex sm:flex-col items-stretch sm:items-end gap-2.5 shrink-0">
             {nextStage ? (
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 onClick={() => {
                   setTargetAdvanceStage(nextStage);
                   setIsAdvanceOpen(true);
                 }}
-                className="text-xs h-9 px-3 gap-1.5 font-bold shadow-none"
+                className="text-xs h-10 px-4 gap-2 font-bold shadow-xs whitespace-nowrap"
               >
                 <span>Advance to {nextStage}</span>
-                <ArrowRight size={14} />
+                <ArrowRight size={15} />
               </Button>
             ) : (
-              <div className="text-xs font-bold text-success flex items-center gap-1 p-2 bg-success/10 border border-success/30">
-                <CheckCircle2 size={14} />
+              <div className="text-xs font-bold text-success flex items-center gap-1.5 px-3 py-2 rounded-control bg-success/10 border border-success/30">
+                <CheckCircle2 size={15} />
                 <span>Stage 5: Completed</span>
               </div>
             )}
@@ -244,23 +246,23 @@ export function CampaignDetailPage() {
               variant="ghost"
               size="sm"
               onClick={handleArchive}
-              className="text-xs h-8 text-ch-text-muted hover:text-danger gap-1"
+              className="text-xs h-8 text-ch-text-muted hover:text-danger hover:bg-danger/10 gap-1.5"
             >
-              <Archive size={13} />
+              <Archive size={14} />
               <span>Archive</span>
             </Button>
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="pt-2 border-t border-ch-border space-y-1">
-          <div className="flex justify-between text-[11px] font-mono text-ch-text-muted">
+        {/* Bottom Progress Bar Strip */}
+        <div className="pt-3 border-t border-ch-border space-y-1.5">
+          <div className="flex justify-between items-center text-xs font-mono text-ch-text-muted">
             <span className="font-semibold text-ch-text-primary">Overall Campaign Progress</span>
-            <span>{campaign.progressPercent}%</span>
+            <span className="font-bold text-accent">{campaign.progressPercent}%</span>
           </div>
-          <div className="w-full bg-surface-muted h-2 border border-ch-border">
+          <div className="w-full bg-surface-muted h-2.5 rounded-full border border-ch-border overflow-hidden">
             <div
-              className="bg-primary h-full transition-none"
+              className="bg-accent h-full transition-none rounded-full"
               style={{ width: `${Math.min(100, Math.max(0, campaign.progressPercent))}%` }}
             />
           </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { CampaignStage } from '@corviin-hub/shared';
 import { Check, Lightbulb, FileEdit, Video, Clapperboard, Send } from 'lucide-react';
+import { cn } from '@/lib/cn';
 
 interface CampaignStageStepperProps {
   currentStage: CampaignStage;
@@ -63,77 +64,114 @@ export function CampaignStageStepper({
   const viewingStage = activeViewStage || currentStage;
 
   return (
-    <div className="w-full bg-surface border border-ch-border p-3 overflow-x-auto">
-      <div className="flex items-center justify-between min-w-[620px]">
-        {STAGES.map((s, index) => {
+    <div className="w-full bg-surface border border-ch-border rounded-lg p-3 sm:p-4 shadow-xs">
+      <div className="flex items-center justify-between mb-2.5 px-0.5">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-ch-text-secondary flex items-center gap-1.5">
+          <span>Campaign Stage Lifecycle</span>
+          <span className="text-[10px] font-normal text-ch-text-muted lowercase">
+            (click any stage to view workspace)
+          </span>
+        </h2>
+        <span className="text-xs font-semibold text-accent">
+          Stage {currentNum} of 5 Active
+        </span>
+      </div>
+
+      {/* Responsive Stages: 5-column grid on desktop, scrollable track on mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-2.5">
+        {STAGES.map((s) => {
           const isCompleted = s.number < currentNum;
           const isCurrent = s.stage === currentStage;
           const isSelected = s.stage === viewingStage;
           const Icon = s.icon;
 
           return (
-            <React.Fragment key={s.stage}>
-              {/* Stage Step Item */}
-              <button
-                type="button"
-                onClick={() => onSelectStage && onSelectStage(s.stage)}
-                className={`flex items-center gap-2.5 p-1.5 text-left transition-none rounded-none focus:outline-none ${
-                  isSelected
-                    ? 'ring-1 ring-primary bg-primary/[0.04]'
-                    : 'hover:bg-surface-muted/50'
-                }`}
-              >
-                {/* Step Circle / Badge */}
+            <button
+              key={s.stage}
+              type="button"
+              onClick={() => onSelectStage && onSelectStage(s.stage)}
+              className={cn(
+                'relative flex flex-col justify-between p-3 rounded-control text-left transition-none border cursor-pointer min-h-[82px] select-none',
+                isSelected
+                  ? 'border-accent bg-accent/5 ring-1 ring-accent shadow-xs'
+                  : 'border-ch-border bg-surface hover:bg-surface-muted/60 hover:border-ch-border-strong',
+              )}
+            >
+              {/* Top row: Stage number badge + Status pill */}
+              <div className="flex items-center justify-between gap-2 mb-2 w-full">
                 <div
-                  className={`w-7 h-7 flex items-center justify-center text-xs font-bold shrink-0 border ${
+                  className={cn(
+                    'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border transition-none',
                     isCompleted
                       ? 'bg-success text-white border-success'
                       : isCurrent
-                      ? 'bg-primary text-white border-primary'
-                      : 'bg-surface text-ch-text-muted border-ch-border'
-                  }`}
+                      ? 'bg-accent text-accent-foreground border-accent'
+                      : 'bg-surface-muted text-ch-text-muted border-ch-border',
+                  )}
                 >
-                  {isCompleted ? <Check size={14} /> : s.number}
+                  {isCompleted ? <Check size={13} className="stroke-[2.5]" /> : s.number}
                 </div>
 
-                {/* Step Label */}
-                <div className="flex flex-col">
-                  <span
-                    className={`text-[11px] font-semibold uppercase tracking-wider ${
-                      isCurrent
-                        ? 'text-primary'
-                        : isCompleted
-                        ? 'text-ch-text-primary'
-                        : 'text-ch-text-muted'
-                    }`}
-                  >
-                    Stage {s.number}
+                {isCurrent ? (
+                  <span className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-accent/15 text-accent border border-accent/30 leading-tight">
+                    Current
                   </span>
-                  <span
-                    className={`text-xs font-medium truncate max-w-[120px] ${
-                      isCurrent || isSelected
-                        ? 'text-ch-text-primary font-bold'
-                        : 'text-ch-text-secondary'
-                    }`}
-                  >
-                    {s.label}
+                ) : isCompleted ? (
+                  <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-success/15 text-success leading-tight">
+                    Done ✓
                   </span>
-                </div>
-              </button>
+                ) : (
+                  <span className="text-[10px] text-ch-text-muted font-medium">
+                    Upcoming
+                  </span>
+                )}
+              </div>
 
-              {/* Connecting Divider between steps */}
-              {index < STAGES.length - 1 && (
-                <div
-                  className={`h-0.5 flex-1 mx-2 ${
-                    s.number < currentNum ? 'bg-success' : 'bg-ch-border'
-                  }`}
-                />
-              )}
-            </React.Fragment>
+              {/* Middle row: Stage Number & Full Label */}
+              <div className="flex flex-col flex-1 justify-center">
+                <span
+                  className={cn(
+                    'text-[10px] font-semibold uppercase tracking-wider',
+                    isCurrent
+                      ? 'text-accent font-bold'
+                      : isCompleted
+                      ? 'text-ch-text-primary'
+                      : 'text-ch-text-muted',
+                  )}
+                >
+                  Stage {s.number}
+                </span>
+                <span
+                  className={cn(
+                    'text-xs font-semibold leading-snug mt-0.5 line-clamp-2',
+                    isSelected || isCurrent
+                      ? 'text-ch-text-primary font-bold'
+                      : 'text-ch-text-secondary',
+                  )}
+                >
+                  {s.label}
+                </span>
+              </div>
+
+              {/* Bottom indicator strip */}
+              <div className="mt-2.5 pt-1.5 border-t border-ch-border/60 flex items-center justify-between text-[10px]">
+                <span
+                  className={cn(
+                    'flex items-center gap-1 font-medium',
+                    isSelected ? 'text-accent' : 'text-ch-text-muted',
+                  )}
+                >
+                  <Icon size={11} />
+                  <span>{isSelected ? 'Viewing' : 'Inspect'}</span>
+                </span>
+                <span className="font-mono text-ch-text-muted">
+                  {s.number < currentNum ? '100%' : s.stage === currentStage ? 'In Progress' : '0%'}
+                </span>
+              </div>
+            </button>
           );
         })}
       </div>
     </div>
   );
 }
-
