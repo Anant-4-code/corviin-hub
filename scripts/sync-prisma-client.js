@@ -8,3 +8,4 @@ if (fs.existsSync(apiClient) && fs.existsSync(path.join(apiClient, 'index.js')))
   fs.cpSync(apiClient, rootClient, { recursive: true, dereference: true });
   console.log('[sync-prisma-client] Synced generated client back to root node_modules');
 }
+
