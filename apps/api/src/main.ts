@@ -17,10 +17,25 @@ async function bootstrap() {
   // Global prefix for all API routes
   app.setGlobalPrefix('api/v1');
 
-  // CORS (allow self-origin and any configured origins)
-  const corsOrigins = process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173'];
+  // CORS (allow self-origin, Capacitor Android origins, and configured origins)
+  const defaultOrigins = [
+    'http://localhost:5173',
+    'https://localhost',
+    'capacitor://localhost',
+    'http://localhost',
+  ];
+  const envOrigins = process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [];
+  const allowedOrigins = Array.from(new Set([...defaultOrigins, ...envOrigins]));
+
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || origin.endsWith('.onrender.com')) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Allow any client in production
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-profile-id', 'x-workspace-id'],
     credentials: true,
