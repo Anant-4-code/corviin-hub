@@ -5,6 +5,7 @@ import { ThemeSwitcher } from './ThemeSwitcher';
 import { ProfileMenu } from './ProfileMenu';
 import { NotificationPopover } from './NotificationPopover';
 import { ContextualCreateMenu, CreateEntityType } from './ContextualCreateMenu';
+import { ServerReloadButton } from './ServerReloadButton';
 import { GlobalSearchModal } from '@/features/search/GlobalSearchModal';
 import { useAppStore } from '@/lib/store';
 import { SearchEntityType } from '@corviin-hub/shared';
@@ -96,8 +97,9 @@ export function TopBar() {
           </div>
         </div>
 
-        {/* Right actions: Contextual Create, Theme, Notifications, Profile */}
+        {/* Right actions: Server Reload, Contextual Create, Theme, Notifications, Profile */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 pl-1">
+          <ServerReloadButton />
           <ContextualCreateMenu
             externalOpenType={externalCreateType}
             onExternalClose={() => setExternalCreateType(null)}

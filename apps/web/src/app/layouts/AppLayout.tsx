@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { DesktopSidebar } from '@/components/navigation/DesktopSidebar';
 import { TopBar } from '@/components/navigation/TopBar';
+import { ServerConnectionBanner } from '@/components/navigation/ServerConnectionBanner';
 import { MobileBottomNavigation } from '@/components/navigation/MobileBottomNavigation';
 import { ToastContainer } from '@/components/ui/Toast';
 
@@ -13,6 +14,7 @@ export function AppLayout() {
       {/* Main content column */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <TopBar />
+        <ServerConnectionBanner />
         <main
           id="main-content"
           className="flex-1 overflow-y-auto relative z-0"

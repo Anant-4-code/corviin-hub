@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { MoreHorizontal, Sun, Moon, Monitor } from 'lucide-react';
+import { MoreHorizontal, Sun, Moon, Monitor, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { mobileBottomNav, mobileMoreItems } from './navigation-config';
 import { BottomSheet } from '@/components/ui/Drawer';
 import { useAppStore } from '@/lib/store';
@@ -8,6 +9,7 @@ import { cn } from '@/lib/cn';
 
 export function MobileBottomNavigation() {
   const [moreOpen, setMoreOpen] = useState(false);
+  const queryClient = useQueryClient();
   const theme = useAppStore((s) => s.theme);
   const setTheme = useAppStore((s) => s.setTheme);
 
@@ -52,6 +54,41 @@ export function MobileBottomNavigation() {
 
       <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="More">
         <div className="flex flex-col gap-3">
+          {/* Server Connection & App Reload action */}
+          <div className="p-2.5 bg-surface-muted/60 rounded-control border border-ch-border flex items-center justify-between">
+            <div>
+              <div className="text-xs font-semibold text-ch-text-primary">Server Connection</div>
+              <div className="text-[11px] text-ch-text-muted">Wake up Render API or hard reload</div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={async () => {
+                  setMoreOpen(false);
+                  const apiBase = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+                  try {
+                    await fetch(`${apiBase}/health`, { method: 'GET', cache: 'no-store' });
+                  } catch {
+                    // Ignore boot error
+                  }
+                  await queryClient.invalidateQueries();
+                  await queryClient.refetchQueries();
+                }}
+                className="px-2.5 py-1.5 bg-accent text-accent-foreground rounded-control text-xs font-semibold flex items-center gap-1 hover:opacity-90"
+              >
+                <RefreshCw size={13} />
+                <span>Sync</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-2.5 py-1.5 bg-surface border border-ch-border text-ch-text-secondary hover:text-ch-text-primary rounded-control text-xs font-semibold"
+              >
+                Reload
+              </button>
+            </div>
+          </div>
+
           {/* Quick theme selector */}
           <div className="p-2 bg-surface-muted/60 rounded-control border border-ch-border">
             <p className="text-[11px] font-semibold text-ch-text-secondary uppercase tracking-wider mb-2">

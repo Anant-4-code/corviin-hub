@@ -1,5 +1,5 @@
-import { type ReactNode } from 'react';
-import { type LucideIcon, AlertTriangle, ShieldAlert, WifiOff, Search, FilterX } from 'lucide-react';
+import { useState, useEffect, type ReactNode } from 'react';
+import { type LucideIcon, AlertTriangle, ShieldAlert, WifiOff, Search, FilterX, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Button } from './Button';
 
@@ -89,18 +89,43 @@ export function FilterEmptyState({
 export function LoadingState({
   message = 'Loading data…',
   description = 'Fetching the latest workspace records.',
+  onRetry,
   className,
 }: {
   message?: string;
   description?: string;
+  onRetry?: () => void;
   className?: string;
 }) {
+  const [showSlowNotice, setShowSlowNotice] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSlowNotice(true), 4500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className={cn('flex flex-col items-center justify-center py-12 px-4 text-center', className)}>
       {/* Static non-animated indicator */}
       <div className="w-8 h-8 rounded-full border-2 border-accent border-t-transparent mb-3" />
       <span className="text-sm font-medium text-ch-text-primary">{message}</span>
       {description && <span className="text-xs text-ch-text-secondary mt-1">{description}</span>}
+
+      {showSlowNotice && (
+        <div className="mt-4 p-3 bg-surface border border-ch-border rounded-lg max-w-sm text-xs text-ch-text-secondary flex flex-col items-center gap-2">
+          <span>Server taking time to respond? Free-tier Render instances sleep when inactive and need ~30–60s to wake up.</span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onRetry || (() => window.location.reload())}
+              className="px-3 py-1 rounded-control bg-accent text-accent-foreground text-xs font-semibold flex items-center gap-1.5 hover:opacity-90"
+            >
+              <RefreshCw size={12} />
+              <span>Reconnect & Reload</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

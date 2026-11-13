@@ -8,7 +8,7 @@ import { cn } from '@/lib/cn';
 export function WorkspaceSwitcher() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const { data: workspaces, isLoading } = useWorkspaces();
+  const { data: workspaces, isLoading, isError, refetch } = useWorkspaces();
   const { selectedWorkspaceId, setSelectedWorkspaceId } = useAppStore();
   const queryClient = useQueryClient();
 
@@ -53,6 +53,17 @@ export function WorkspaceSwitcher() {
         <div className="absolute top-full left-0 mt-1 w-56 bg-surface-elevated border border-ch-border rounded-lg shadow-lg z-50 py-1">
           {isLoading ? (
             <p className="px-3 py-2 text-sm text-ch-text-muted">Loading workspaces…</p>
+          ) : isError || !workspaces || workspaces.length === 0 ? (
+            <div className="p-3 text-xs space-y-2">
+              <p className="text-ch-text-secondary">Could not load workspaces.</p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                className="w-full py-1.5 px-2 rounded-control bg-accent text-accent-foreground text-xs font-semibold"
+              >
+                Retry connection
+              </button>
+            </div>
           ) : (
             workspaces?.map((ws) => (
               <button

@@ -54,7 +54,10 @@ export function DashboardPage() {
     return (
       <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
         <PageHeader title="Dashboard" description="Operational summary and live metrics" />
-        <LoadingState message="Loading workspace dashboard..." />
+        <LoadingState
+          message="Loading workspace dashboard..."
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }
